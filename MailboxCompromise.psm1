@@ -11,7 +11,10 @@ function Check-MailboxCompromise {
 
     .PARAMETER QuickRun
     If specified, the function will only check inbox rules, suspicious login activity, and forwarding rules.
-
+    
+    .PARAMETER Verbose
+    If specified, the function will list out all custom permissions and audit logs for each mailbox.
+    
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com"
 
@@ -90,21 +93,32 @@ function Check-MailboxCompromise {
                 Write-Output "  - No mailbox-level forwarding."
             }
 
-            # Audit Logs
-            $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
+           # Audit Logs
+           $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
 
-            if ($auditLogs.Count -gt 0) {
-                Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
-            } else {
-                Write-Output "  - No recent audit log entries."
+           if ($auditLogs.Count -gt 0) {
+               Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
+               if ($Verbose) {
+                   foreach ($log in $auditLogs) {
+                       Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId) 
+                    }
+                }
+            } 
+            else {
+            Write-Output "  - No recent audit log entries."
             }
 
-            # Custom Permissions
             $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
 
             if ($permissions.Count -gt 0) {
                 Write-Output "  - Has $($permissions.Count) custom permission(s) set."
-            } else {
+                if ($Verbose) {
+                    foreach ($permission in $permissions) {
+                        Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
+                    }
+                }
+            } 
+            else {
                 Write-Output "  - No custom permissions set."
             }
 
