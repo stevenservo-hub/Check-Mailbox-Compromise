@@ -9,21 +9,27 @@
 
 ## Installation
 Clone the Repository: Clone the repository to your local machine using the following command:
-`git clone https://github.com/yourusername/yourrepository.git`
+
+`git clone https://github.com/yourusername/Check-Mailbox-Compromise
+y.git`
 
 Navigate to the Module Directory: Change to the directory where the module file is located:
-`cd yourrepository`
+
+`cd Check-Mailbox-Compromise`
 
 Import the Module: Import the MailboxCompromise.psm1 module into your PowerShell session:
+
 `Import-Module -Path ".\MailboxCompromise.psm1"`
 
 ## Usage
 To use the Check-MailboxCompromise function, you need to provide the Exchange Online administrator’s User Principal Name (UPN). You can also specify the -QuickRun flag to perform a quick check.
 
 ## Full Check Example
+
 `Check-MailboxCompromise -ExchangeAdmin "admin@example.com"`
 
 ## Quick Run Example
+
 `Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -QuickRun`
 
 ## Help
