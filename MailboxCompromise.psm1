@@ -29,6 +29,7 @@ function Check-MailboxCompromise {
     param (
         [string]$ExchangeAdmin,
         [switch]$QuickRun
+        [switch]$Verbose
     )
 
     # Connect to Exchange
@@ -147,13 +148,14 @@ function Check-MailboxCompromise {
 
             if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                 Write-Output "  - Auto-reply is enabled."
-            } else {
+            } 
+            else {
                 Write-Output "  - Auto-reply is disabled."
             }
         }
     }
 
-    Disconnect-ExchangeOnline -Confirm:$false
+Disconnect-ExchangeOnline -Confirm:$false
 }
 
 # Export the function as a module
