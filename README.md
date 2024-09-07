@@ -25,13 +25,13 @@ To use the Check-MailboxCompromise function, you need to provide the Exchange On
 
 ## Full Check Example
 
-`Check-MailboxCompromise -ExchangeAdmin "admin@example.com"`
+`invoke-mailboxcheck -ExchangeAdmin "admin@example.com"`
 
 ## Quick Run Example
 
-`Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -QuickRun`
+`invoke-mailboxchecke -ExchangeAdmin "admin@example.com" -QuickRun`
 
 ## Help
 For detailed information about the function, you can use the Get-Help cmdlet:
 
-`Get-Help Check-MailboxCompromise -Detailed`
+`Get-Help invoke-mailboxcheck -Detailed`
