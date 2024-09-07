@@ -31,7 +31,27 @@ function Check-MailboxCompromise {
         [switch]$QuickRun
     )
 
-    Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
+    # Connect to Exchange
+    $retryCount = 3
+    $retryDelay = 5 # seconds
+    $connected = $false
+
+    for ($i = 0; $i -lt $retryCount; $i++) {
+        try {
+            Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
+            $connected = $true
+            break
+        } 
+        catch {
+            Write-Output "Error connecting to Exchange Online. Attempt $($i + 1) of $retryCount."
+            Start-Sleep -Seconds $retryDelay
+        }
+    }
+
+    if (-not $connected) {
+        Write-Output "Failed to connect to Exchange Online after $retryCount attempts."
+        return
+    }
 
     $mailboxes = Get-Mailbox -ResultSize Unlimited
 
