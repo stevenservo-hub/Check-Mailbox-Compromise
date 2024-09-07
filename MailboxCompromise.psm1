@@ -1,4 +1,4 @@
-function invoke-mailboxcheck {
+function invoke-mailboxcheck{
     <#
     .SYNOPSIS
     Checks for potential signs of mailbox compromise.
@@ -21,6 +21,9 @@ function invoke-mailboxcheck {
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -QuickRun
 
+    .EXAMPLE
+    Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -Verbose
+
     .NOTES
     Author: Steven Spring
     Date: 2024-09-07
@@ -28,11 +31,11 @@ function invoke-mailboxcheck {
 
     param (
         [string]$ExchangeAdmin,
-        [switch]$QuickRun
+        [switch]$QuickRun,
         [switch]$Verbose
     )
 
-    # Connect to Exchange
+    # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
     $connected = $false
@@ -42,8 +45,7 @@ function invoke-mailboxcheck {
             Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
             $connected = $true
             break
-        } 
-        catch {
+        } catch {
             Write-Output "Error connecting to Exchange Online. Attempt $($i + 1) of $retryCount."
             Start-Sleep -Seconds $retryDelay
         }
@@ -114,32 +116,31 @@ function invoke-mailboxcheck {
                 Write-Output "  - No mailbox-level forwarding."
             }
 
-           # Audit Logs
-           $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
+            # Audit Logs
+            $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
 
-           if ($auditLogs.Count -gt 0) {
-               Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
-               if ($Verbose) {
-                   foreach ($log in $auditLogs) {
-                       Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId) 
+            if ($auditLogs.Count -gt 0) {
+                Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
+                if ($Verbose) {
+                    foreach ($log in $auditLogs) {
+                        Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
                     }
                 }
-            } 
-            else {
-            Write-Output "  - No recent audit log entries."
+            } else {
+                Write-Output "  - No recent audit log entries."
             }
 
+            # Custom Permissions
             $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
 
-           if ($permissions.Count -gt 0) {
+            if ($permissions.Count -gt 0) {
                 Write-Output "  - Has $($permissions.Count) custom permission(s) set."
                 if ($Verbose) {
                     foreach ($permission in $permissions) {
                         Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
                     }
                 }
-            } 
-            else {
+            } else {
                 Write-Output "  - No custom permissions set."
             }
 
@@ -148,14 +149,13 @@ function invoke-mailboxcheck {
 
             if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                 Write-Output "  - Auto-reply is enabled."
-            } 
-            else {
+            } else {
                 Write-Output "  - Auto-reply is disabled."
             }
         }
     }
 
-Disconnect-ExchangeOnline -Confirm:$false
+    Disconnect-ExchangeOnline -Confirm:$false
 }
 
 # Export the function as a module
