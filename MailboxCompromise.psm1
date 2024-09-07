@@ -22,7 +22,7 @@ function Check-MailboxCompromise {
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -QuickRun
 
     .NOTES
-    Author: Your Name
+    Author: Steven Spring
     Date: 2024-09-07
     #>
 
@@ -110,7 +110,7 @@ function Check-MailboxCompromise {
 
             $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
 
-            if ($permissions.Count -gt 0) {
+           if ($permissions.Count -gt 0) {
                 Write-Output "  - Has $($permissions.Count) custom permission(s) set."
                 if ($Verbose) {
                     foreach ($permission in $permissions) {
