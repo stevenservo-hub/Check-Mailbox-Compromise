@@ -10,7 +10,7 @@
 ## Installation
 Clone the Repository: Clone the repository to your local machine using the following command:
 
-`git clone https://github.com/yourusername/Check-Mailbox-Compromise.git`
+`git clone https://github.com/stevenservo-hub/Check-Mailbox-Compromise.git`
 
 Navigate to the Module Directory: Change to the directory where the module file is located:
 
