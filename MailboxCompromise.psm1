@@ -1,4 +1,4 @@
-function Check-MailboxCompromise {
+function invoke-mailboxcheck {
     <#
     .SYNOPSIS
     Checks for potential signs of mailbox compromise.
@@ -159,4 +159,4 @@ Disconnect-ExchangeOnline -Confirm:$false
 }
 
 # Export the function as a module
-Export-ModuleMember -Function Check-MailboxCompromise
+Export-ModuleMember -Function invoke-mailboxcheck
