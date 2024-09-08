@@ -127,10 +127,10 @@ function Invoke-MailboxCheck {
         } catch {
             Write-Output "  - Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
         }
-       
+        
+        # Search for password changes in the Admin Audit Log
         try {
-            # Search for password changes in the Admin Audit Log
-            $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
+           $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
             $endDate = Get-Date
         
             $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword
