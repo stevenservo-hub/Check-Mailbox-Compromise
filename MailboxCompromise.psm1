@@ -27,6 +27,10 @@ function invoke-mailboxcheck {
     .NOTES
     Author: Steven Spring
     Date: 2024-09-07
+
+    This script is licensed under the GNU General Public License v3.0.
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <https://www.gnu.org/licenses/>.
     #>
 
     param (
@@ -45,7 +49,8 @@ function invoke-mailboxcheck {
             Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
             $connected = $true
             break
-        } catch {
+        } 
+        catch {
             Write-Output "Error connecting to Exchange Online. Attempt $($i + 1) of $retryCount."
             Start-Sleep -Seconds $retryDelay
         }
@@ -58,7 +63,8 @@ function invoke-mailboxcheck {
 
     try {
         $mailboxes = Get-Mailbox -ResultSize Unlimited
-    } catch {
+    } 
+    catch {
         Write-Output "Error retrieving mailboxes: $_"
         return
     }
@@ -77,7 +83,8 @@ function invoke-mailboxcheck {
                 foreach ($rule in $inboxRules) {
                     Write-Output "    - Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
                 }
-            } else {
+            } 
+            else {
                 Write-Output "  - No added rules."
             }
 
@@ -86,7 +93,8 @@ function invoke-mailboxcheck {
             
             if ($forwardingRules.Count -gt 0) {
                 Write-Output "  - Has $($forwardingRules.Count) forwarding rule(s)."
-            } else {
+            } 
+            else {
                 Write-Output "  - No forwarding rules."
             }
 
@@ -98,7 +106,8 @@ function invoke-mailboxcheck {
                 foreach ($login in $suspiciousLogins) {
                     Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
                 }
-            } else {
+            } 
+            else {
                 Write-Output "  - No suspicious logins in the past 7 days."
             }
 
@@ -109,7 +118,8 @@ function invoke-mailboxcheck {
 
                 if ($delegates.Count -gt 0) {
                     Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
-                } else {
+                } 
+                else {
                     Write-Output "  - No delegates with Full Access."
                 }
 
@@ -118,7 +128,8 @@ function invoke-mailboxcheck {
 
                 if ($mailboxForwarding) {
                     Write-Output "  - Has mailbox-level forwarding to $mailboxForwarding."
-                } else {
+                } 
+                else {
                     Write-Output "  - No mailbox-level forwarding."
                 }
 
@@ -132,7 +143,8 @@ function invoke-mailboxcheck {
                             Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
                         }
                     }
-                } else {
+                } 
+                else {
                     Write-Output "  - No recent audit log entries."
                 }
 
@@ -146,7 +158,8 @@ function invoke-mailboxcheck {
                             Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
                         }
                     }
-                } else {
+                } 
+                else {
                     Write-Output "  - No custom permissions set."
                 }
 
@@ -155,18 +168,21 @@ function invoke-mailboxcheck {
 
                 if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                     Write-Output "  - Auto-reply is enabled."
-                } else {
+                } 
+                else {
                     Write-Output "  - Auto-reply is disabled."
                 }
             }
-        } catch {
+        } 
+        catch {
             Write-Output "Error processing mailbox $($mailbox.UserPrincipalName): $_"
         }
     }
 
     try {
         Disconnect-ExchangeOnline -Confirm:$false
-    } catch {
+    } 
+    catch {
         Write-Output "Error disconnecting from Exchange Online: $_"
     }
 }
