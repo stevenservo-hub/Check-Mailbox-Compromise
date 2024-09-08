@@ -1,4 +1,4 @@
-function invoke-mailboxcheck{
+function invoke-mailboxcheck {
     <#
     .SYNOPSIS
     Checks for potential signs of mailbox compromise.
@@ -56,106 +56,119 @@ function invoke-mailboxcheck{
         return
     }
 
-    $mailboxes = Get-Mailbox -ResultSize Unlimited
+    try {
+        $mailboxes = Get-Mailbox -ResultSize Unlimited
+    } catch {
+        Write-Output "Error retrieving mailboxes: $_"
+        return
+    }
 
     foreach ($mailbox in $mailboxes) {
         Write-Output "=============================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
         Write-Output "=============================="
 
-        # Inbox Rules
-        $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName -ShowHidden
+        try {
+            # Inbox Rules
+            $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName -ShowHidden
 
-        if ($inboxRules.Count -gt 0) {
-            Write-Output "  - Has $($inboxRules.Count) rule(s):"
-            foreach ($rule in $inboxRules) {
-                Write-Output "    - Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
-            }
-        } else {
-            Write-Output "  - No added rules."
-        }
-
-        # Forwarding Rules
-        $forwardingRules = $inboxRules | Where-Object { $_.ForwardTo -ne $null -or $_.ForwardAsAttachmentTo -ne $null }
-        
-        if ($forwardingRules.Count -gt 0) {
-            Write-Output "  - Has $($forwardingRules.Count) forwarding rule(s)."
-        } else {
-            Write-Output "  - No forwarding rules."
-        }
-
-        # Suspicious Login Activity
-        $suspiciousLogins = Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date) -UserIds $mailbox.UserPrincipalName -Operations "UserLoggedIn" | Where-Object { $_.ClientIP -notlike "KnownIPRange" }
-        
-        if ($suspiciousLogins.Count -gt 0) {
-            Write-Output "  - Has $($suspiciousLogins.Count) suspicious login(s) in the past 7 days."
-            foreach ($login in $suspiciousLogins) {
-                Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
-            }
-        } else {
-            Write-Output "  - No suspicious logins in the past 7 days."
-        }
-
-        # Additional checks for full run
-        if (-not $QuickRun) {
-            # Delegates
-            $delegates = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -eq "FullAccess" -and $_.IsInherited -eq $false }
-
-            if ($delegates.Count -gt 0) {
-                Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
-            } else {
-                Write-Output "  - No delegates with Full Access."
-            }
-
-            # Mailbox Forwarding
-            $mailboxForwarding = Get-Mailbox -Identity $mailbox.UserPrincipalName | Select-Object -ExpandProperty ForwardingSMTPAddress
-
-            if ($mailboxForwarding) {
-                Write-Output "  - Has mailbox-level forwarding to $mailboxForwarding."
-            } else {
-                Write-Output "  - No mailbox-level forwarding."
-            }
-
-            # Audit Logs
-            $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
-
-            if ($auditLogs.Count -gt 0) {
-                Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
-                if ($Verbose) {
-                    foreach ($log in $auditLogs) {
-                        Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
-                    }
+            if ($inboxRules.Count -gt 0) {
+                Write-Output "  - Has $($inboxRules.Count) rule(s):"
+                foreach ($rule in $inboxRules) {
+                    Write-Output "    - Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
                 }
             } else {
-                Write-Output "  - No recent audit log entries."
+                Write-Output "  - No added rules."
             }
 
-            # Custom Permissions
-            $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
+            # Forwarding Rules
+            $forwardingRules = $inboxRules | Where-Object { $_.ForwardTo -ne $null -or $_.ForwardAsAttachmentTo -ne $null }
+            
+            if ($forwardingRules.Count -gt 0) {
+                Write-Output "  - Has $($forwardingRules.Count) forwarding rule(s)."
+            } else {
+                Write-Output "  - No forwarding rules."
+            }
 
-            if ($permissions.Count -gt 0) {
-                Write-Output "  - Has $($permissions.Count) custom permission(s) set."
-                if ($Verbose) {
-                    foreach ($permission in $permissions) {
-                        Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
-                    }
+            # Suspicious Login Activity
+            $suspiciousLogins = Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date) -UserIds $mailbox.UserPrincipalName -Operations "UserLoggedIn" | Where-Object { $_.ClientIP -notlike "KnownIPRange" }
+            
+            if ($suspiciousLogins.Count -gt 0) {
+                Write-Output "  - Has $($suspiciousLogins.Count) suspicious login(s) in the past 7 days."
+                foreach ($login in $suspiciousLogins) {
+                    Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
                 }
             } else {
-                Write-Output "  - No custom permissions set."
+                Write-Output "  - No suspicious logins in the past 7 days."
             }
 
-            # Auto-Reply Settings
-            $autoReplyConfig = Get-MailboxAutoReplyConfiguration -Identity $mailbox.UserPrincipalName
+            # Additional checks for full run
+            if (-not $QuickRun) {
+                # Delegates
+                $delegates = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -eq "FullAccess" -and $_.IsInherited -eq $false }
 
-            if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
-                Write-Output "  - Auto-reply is enabled."
-            } else {
-                Write-Output "  - Auto-reply is disabled."
+                if ($delegates.Count -gt 0) {
+                    Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
+                } else {
+                    Write-Output "  - No delegates with Full Access."
+                }
+
+                # Mailbox Forwarding
+                $mailboxForwarding = Get-Mailbox -Identity $mailbox.UserPrincipalName | Select-Object -ExpandProperty ForwardingSMTPAddress
+
+                if ($mailboxForwarding) {
+                    Write-Output "  - Has mailbox-level forwarding to $mailboxForwarding."
+                } else {
+                    Write-Output "  - No mailbox-level forwarding."
+                }
+
+                # Audit Logs
+                $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
+
+                if ($auditLogs.Count -gt 0) {
+                    Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
+                    if ($Verbose) {
+                        foreach ($log in $auditLogs) {
+                            Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
+                        }
+                    }
+                } else {
+                    Write-Output "  - No recent audit log entries."
+                }
+
+                # Custom Permissions
+                $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
+
+                if ($permissions.Count -gt 0) {
+                    Write-Output "  - Has $($permissions.Count) custom permission(s) set."
+                    if ($Verbose) {
+                        foreach ($permission in $permissions) {
+                            Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
+                        }
+                    }
+                } else {
+                    Write-Output "  - No custom permissions set."
+                }
+
+                # Auto-Reply Settings
+                $autoReplyConfig = Get-MailboxAutoReplyConfiguration -Identity $mailbox.UserPrincipalName
+
+                if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
+                    Write-Output "  - Auto-reply is enabled."
+                } else {
+                    Write-Output "  - Auto-reply is disabled."
+                }
             }
+        } catch {
+            Write-Output "Error processing mailbox $($mailbox.UserPrincipalName): $_"
         }
     }
 
-    Disconnect-ExchangeOnline -Confirm:$false
+    try {
+        Disconnect-ExchangeOnline -Confirm:$false
+    } catch {
+        Write-Output "Error disconnecting from Exchange Online: $_"
+    }
 }
 
 # Export the function as a module
