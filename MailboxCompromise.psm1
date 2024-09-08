@@ -1,4 +1,4 @@
-function invoke-mailboxcheck {
+function Invoke-MailboxCheck {
     <#
     .SYNOPSIS
     Checks for potential signs of mailbox compromise.
@@ -27,10 +27,6 @@ function invoke-mailboxcheck {
     .NOTES
     Author: Steven Spring
     Date: 2024-09-07
-
-    This script is licensed under the GNU General Public License v3.0.
-    You should have received a copy of the GNU General Public License
-    along with this program. If not, see <https://www.gnu.org/licenses/>.
     #>
 
     param (
@@ -38,13 +34,14 @@ function invoke-mailboxcheck {
         [switch]$QuickRun,
         [switch]$Verbose
     )
-    
+
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
         Write-Output "The ExchangeOnlineManagement module is not installed. Please install it using the following command:"
         Write-Output "Install-Module -Name ExchangeOnlineManagement -Force -AllowClobber"
-        exit
+        Exit
     }
+
     # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
@@ -55,8 +52,7 @@ function invoke-mailboxcheck {
             Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
             $connected = $true
             break
-        } 
-        catch {
+        } catch {
             Write-Output "Error connecting to Exchange Online. Attempt $($i + 1) of $retryCount."
             Start-Sleep -Seconds $retryDelay
         }
@@ -64,24 +60,18 @@ function invoke-mailboxcheck {
 
     if (-not $connected) {
         Write-Output "Failed to connect to Exchange Online after $retryCount attempts."
-        return
+        Exit
     }
 
-    try {
-        $mailboxes = Get-Mailbox -ResultSize Unlimited
-    } 
-    catch {
-        Write-Output "Error retrieving mailboxes: $_"
-        return
-    }
+    $mailboxes = Get-Mailbox -ResultSize Unlimited
 
     foreach ($mailbox in $mailboxes) {
         Write-Output "=============================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
         Write-Output "=============================="
 
+        # Inbox Rules
         try {
-            # Inbox Rules
             $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName -ShowHidden
 
             if ($inboxRules.Count -gt 0) {
@@ -89,22 +79,28 @@ function invoke-mailboxcheck {
                 foreach ($rule in $inboxRules) {
                     Write-Output "    - Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
                 }
-            } 
-            else {
+            } else {
                 Write-Output "  - No added rules."
             }
+        } catch {
+            Write-Output "  - Error retrieving inbox rules for $($mailbox.UserPrincipalName)."
+        }
 
-            # Forwarding Rules
+        # Forwarding Rules
+        try {
             $forwardingRules = $inboxRules | Where-Object { $_.ForwardTo -ne $null -or $_.ForwardAsAttachmentTo -ne $null }
             
             if ($forwardingRules.Count -gt 0) {
                 Write-Output "  - Has $($forwardingRules.Count) forwarding rule(s)."
-            } 
-            else {
+            } else {
                 Write-Output "  - No forwarding rules."
             }
+        } catch {
+            Write-Output "  - Error retrieving forwarding rules for $($mailbox.UserPrincipalName)."
+        }
 
-            # Suspicious Login Activity
+        # Suspicious Login Activity
+        try {
             $suspiciousLogins = Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date) -UserIds $mailbox.UserPrincipalName -Operations "UserLoggedIn" | Where-Object { $_.ClientIP -notlike "KnownIPRange" }
             
             if ($suspiciousLogins.Count -gt 0) {
@@ -112,49 +108,62 @@ function invoke-mailboxcheck {
                 foreach ($login in $suspiciousLogins) {
                     Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
                 }
-            } 
-            else {
+            } else {
                 Write-Output "  - No suspicious logins in the past 7 days."
             }
-
+        } catch {
+            Write-Output "  - Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
+        }
+       
+        try {
             # Search for password changes in the Admin Audit Log
             $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
             $endDate = Get-Date
-
+        
             $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword
-
+        
             if ($passwordChanges.Count -gt 0) {
                 Write-Output "Password changes found:"
                 foreach ($change in $passwordChanges) {
                     Write-Output "  - User: $($change.UserId), Date: $($change.CreationDate), Cmdlet: $($change.CmdletName)"
                 }
-            } 
-            else {
+            } else {
                 Write-Output "No password changes found in the specified date range."
             }
-            # Additional checks for full run
-            if (-not $QuickRun) {
-                # Delegates
+        } catch {
+            Write-Output "An error occurred while searching for password changes: $_"
+        }
+        
+        # Additional checks for full run
+        if (-not $QuickRun) {
+            # Delegates
+            try {
                 $delegates = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -eq "FullAccess" -and $_.IsInherited -eq $false }
 
                 if ($delegates.Count -gt 0) {
                     Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
-                } 
-                else {
+                } else {
                     Write-Output "  - No delegates with Full Access."
                 }
+            } catch {
+                Write-Output "  - Error retrieving delegates for $($mailbox.UserPrincipalName)."
+            }
 
-                # Mailbox Forwarding
+            # Mailbox Forwarding
+            try {
                 $mailboxForwarding = Get-Mailbox -Identity $mailbox.UserPrincipalName | Select-Object -ExpandProperty ForwardingSMTPAddress
 
                 if ($mailboxForwarding) {
                     Write-Output "  - Has mailbox-level forwarding to $mailboxForwarding."
-                } 
-                else {
+                } else {
                     Write-Output "  - No mailbox-level forwarding."
                 }
+            } catch {
+                Write-Output "  - Error retrieving mailbox-level forwarding for $($mailbox.UserPrincipalName)."
+            }
 
-                # Audit Logs
+            # Audit Logs
+            try {
                 $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
 
                 if ($auditLogs.Count -gt 0) {
@@ -164,12 +173,15 @@ function invoke-mailboxcheck {
                             Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
                         }
                     }
-                } 
-                else {
+                } else {
                     Write-Output "  - No recent audit log entries."
                 }
+            } catch {
+                Write-Output "  - Error retrieving audit logs for $($mailbox.UserPrincipalName)."
+            }
 
-                # Custom Permissions
+            # Custom Permissions
+            try {
                 $permissions = Get-MailboxPermission -Identity $mailbox.UserPrincipalName | Where-Object { $_.AccessRights -ne "FullAccess" -and $_.IsInherited -eq $false }
 
                 if ($permissions.Count -gt 0) {
@@ -179,35 +191,30 @@ function invoke-mailboxcheck {
                             Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
                         }
                     }
-                } 
-                else {
+                } else {
                     Write-Output "  - No custom permissions set."
                 }
+            } catch {
+                Write-Output "  - Error retrieving custom permissions for $($mailbox.UserPrincipalName)."
+            }
 
-                # Auto-Reply Settings
+            # Auto-Reply Settings
+            try {
                 $autoReplyConfig = Get-MailboxAutoReplyConfiguration -Identity $mailbox.UserPrincipalName
 
                 if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                     Write-Output "  - Auto-reply is enabled."
-                } 
-                else {
+                } else {
                     Write-Output "  - Auto-reply is disabled."
                 }
+            } catch {
+                Write-Output "  - Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
-        } 
-        catch {
-            Write-Output "Error processing mailbox $($mailbox.UserPrincipalName): $_"
         }
     }
 
-    try {
-        Disconnect-ExchangeOnline -Confirm:$false
-    } 
-    catch {
-        Write-Output "Error disconnecting from Exchange Online: $_"
-    }
+    Disconnect-ExchangeOnline -Confirm:$false
 }
 
 # Export the function as a module
-Export-ModuleMember -Function invoke-mailboxcheck
-
+Export-ModuleMember -Function Invoke-MailboxCheck
