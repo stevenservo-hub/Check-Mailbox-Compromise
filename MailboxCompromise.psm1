@@ -41,11 +41,10 @@ function invoke-mailboxcheck {
     
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
-        Write-Output "The ExchangeOnlineManagement module is required. Please install it using the following command:"
+        Write-Output "The ExchangeOnlineManagement module is not installed. Please install it using the following command:"
         Write-Output "Install-Module -Name ExchangeOnlineManagement -Force -AllowClobber"
         exit
     }
-    
     # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
@@ -118,6 +117,21 @@ function invoke-mailboxcheck {
                 Write-Output "  - No suspicious logins in the past 7 days."
             }
 
+            # Search for password changes in the Admin Audit Log
+            $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
+            $endDate = Get-Date
+
+            $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword
+
+            if ($passwordChanges.Count -gt 0) {
+                Write-Output "Password changes found:"
+                foreach ($change in $passwordChanges) {
+                    Write-Output "  - User: $($change.UserId), Date: $($change.CreationDate), Cmdlet: $($change.CmdletName)"
+                }
+            } 
+            else {
+                Write-Output "No password changes found in the specified date range."
+            }
             # Additional checks for full run
             if (-not $QuickRun) {
                 # Delegates
@@ -196,3 +210,4 @@ function invoke-mailboxcheck {
 
 # Export the function as a module
 Export-ModuleMember -Function invoke-mailboxcheck
+
