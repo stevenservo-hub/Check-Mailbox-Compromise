@@ -38,7 +38,14 @@ function invoke-mailboxcheck {
         [switch]$QuickRun,
         [switch]$Verbose
     )
-
+    
+    # Check if ExchangeOnlineManagement module is installed
+    if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
+        Write-Output "The ExchangeOnlineManagement module is required. Please install it using the following command:"
+        Write-Output "Install-Module -Name ExchangeOnlineManagement -Force -AllowClobber"
+        exit
+    }
+    
     # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
