@@ -1,6 +1,6 @@
 # Check-MailboxCompromise Module
 
-##Future Intent
+## Future Intent
 My intent is for this module to eventually become part of a fully menu-driven toolbox. This toolbox will enable users to perform various administrative tasks such as:
 
 Running mailbox checks for compromise
