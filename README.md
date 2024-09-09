@@ -1,5 +1,14 @@
 # Check-MailboxCompromise Module
 
+##Future Intent
+My intent is for this module to eventually become part of a fully menu-driven toolbox. This toolbox will enable users to perform various administrative tasks such as:
+
+Running mailbox checks for compromise
+Changing passwords
+Disabling accounts
+Removing rules
+This will streamline and simplify the management of Exchange Online environments, making it easier for administrators to maintain security and efficiency.
+
 ## Prerequisites
 
 - **PowerShell 5.1 or later**
