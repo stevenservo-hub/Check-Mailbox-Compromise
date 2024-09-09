@@ -28,7 +28,7 @@ Navigate to the Module Directory: Change to the directory where the module file 
 
 Import the Module: Import the MailboxCompromise.psm1 module into your PowerShell session:
 
-`Import-Module -Path ".\MailboxCompromise.psm1"`
+`Import-Module ".\MailboxCompromise.psm1"`
 
 ## Usage
 To use the Check-MailboxCompromise function, you need to provide the Exchange Online administrator’s User Principal Name (UPN). You can also specify the -QuickRun flag to perform a quick check.
