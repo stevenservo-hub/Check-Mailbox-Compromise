@@ -24,6 +24,8 @@ function Invoke-MailboxCheck {
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -Verbose
 
+    .EXAMPLE
+    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose
     .NOTES
     Author: Steven Spring
     Date: 2024-09-07
@@ -45,8 +47,38 @@ function Invoke-MailboxCheck {
     param (
         [string]$ExchangeAdmin,
         [switch]$QuickRun,
-        [switch]$Verbose
+        [switch]$Verbose,
+        [string]$UniqUser
     )
+
+    $printed = $false
+    if (-not $printed) {
+    Write-Output "  "
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWN0kONMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWXOdc;'c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNKko:,,''':0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMWWWMMMMMMMMMMMMMMWX0xl:,,,,'''':0MMMMMMMM"
+    Write-Output "  MMMMMMMMMWNKOxdx0XWWMMMMMMMWKOdc;,,,,,;;,'''c0MMMMMMMM"
+    Write-Output "  MMMMMMMMWXxl:::::lkXWMMWN0koc;,,,,;:oxOd;''':0MMMMMMMM"
+    Write-Output "  MMMMMMMMMNKOdlclx0XNWX0xl:;;;,;;cdOKNWWO;',':0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMWXXNWNKkdl:;;;;;cox0XWMMMMWO:,,'c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMWWN0koc::;;::cdOKNWWWMMMMMWO:,,'c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMWNKOxoc:::::cox0XWWNKkdxOKWMMWO:,,,c0MMMMMMMM"
+    Write-Output "  MMMMMMWNKkdlc::::cldkKNWMMNOo:;;;;cok0Xk:,,,c0MMMMMMMM"
+    Write-Output "  MMMMMMNklc::::::cd0NWMMMMMWXOdl:;;,,;:cc;,,,c0MMMMMMMM"
+    Write-Output "  MMMMMMWXOxocc::::coxOXWMMMMMMWX0xl:;,,,,,,,,c0MMMMMMMW"
+    Write-Output "  MMMMMMMMMWXKkdlc::::cldkKNWMMMMMWNKkdc;,,,,,c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMWNXOxoc:::::cox0XWMMMMMMWXOdl:,,c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMWWX0koc::::::ldkKNWMMMMMWNKkodKMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMWNKOdlc:::;:cox0XWMMMMMMWNWMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMWWX0xoc::;;;:ldOKNWMMMMMMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMWNKkdl:;;;;;cox0NWMMMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXOdl:;;;;;:ld0NMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWN0koc;;;;;lKMMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNKOdl:;c0MMMMMMMM"
+    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX0xkXMMMMMMMM"
+    $printed = $true
+    }
 
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
@@ -62,7 +94,7 @@ function Invoke-MailboxCheck {
 
     for ($i = 0; $i -lt $retryCount; $i++) {
         try {
-            Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin
+            Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
             $connected = $true
             break
         } catch {
@@ -76,16 +108,25 @@ function Invoke-MailboxCheck {
         Exit
     }
 
-    $mailboxes = Get-Mailbox -ResultSize Unlimited
+    try {
+        if ($UniqUser) {
+            $mailboxes = Get-Mailbox -Identity $UniqUser
+        } else {
+            $mailboxes = Get-Mailbox -ResultSize Unlimited
+        }
+    } catch {
+        Write-Host "An error occurred: $_"
+    }
 
     foreach ($mailbox in $mailboxes) {
-        Write-Output "=============================="
+        
+        Write-Output "====================================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
-        Write-Output "=============================="
+        Write-Output "====================================="
 
         # Inbox Rules
         try {
-            $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName -ShowHidden
+            $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName
 
             if ($inboxRules.Count -gt 0) {
                 Write-Output "  - Has $($inboxRules.Count) rule(s):"
@@ -101,7 +142,7 @@ function Invoke-MailboxCheck {
 
         # Forwarding Rules
         try {
-            $forwardingRules = $inboxRules | Where-Object { $_.ForwardTo -ne $null -or $_.ForwardAsAttachmentTo -ne $null }
+            $forwardingRules = $inboxRules | Where-Object { $null -ne $_.ForwardTo -or $null -ne $_.ForwardAsAttachmentTo }
             
             if ($forwardingRules.Count -gt 0) {
                 Write-Output "  - Has $($forwardingRules.Count) forwarding rule(s)."
@@ -133,15 +174,15 @@ function Invoke-MailboxCheck {
            $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
             $endDate = Get-Date
         
-            $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword
+            $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword 3>$null
         
             if ($passwordChanges.Count -gt 0) {
-                Write-Output "Password changes found:"
+                Write-Output " -  Password changes found:"
                 foreach ($change in $passwordChanges) {
                     Write-Output "  - User: $($change.UserId), Date: $($change.CreationDate), Cmdlet: $($change.CmdletName)"
                 }
             } else {
-                Write-Output "No password changes found in the specified date range."
+                Write-Output "  - No password changes found in the specified date range."
             }
         } catch {
             Write-Output "An error occurred while searching for password changes: $_"
@@ -155,13 +196,18 @@ function Invoke-MailboxCheck {
 
                 if ($delegates.Count -gt 0) {
                     Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
-                } else {
+                    if ($Verbose) {
+                        foreach ($delegate in $delegates) {
+                            Write-Output "    - Operation: $($delegate.Operation), Date: $($delegate.CreationDate), User: $($delegates.UserId)"
+                        }
+                    }
+                    } else {
                     Write-Output "  - No delegates with Full Access."
-                }
+                }        
             } catch {
                 Write-Output "  - Error retrieving delegates for $($mailbox.UserPrincipalName)."
             }
-
+        
             # Mailbox Forwarding
             try {
                 $mailboxForwarding = Get-Mailbox -Identity $mailbox.UserPrincipalName | Select-Object -ExpandProperty ForwardingSMTPAddress
