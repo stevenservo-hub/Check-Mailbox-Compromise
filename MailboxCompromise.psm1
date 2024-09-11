@@ -51,6 +51,13 @@ function Invoke-MailboxCheck {
         [string]$UniqUser
     )
 
+       # Create a runspace pool
+       $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+       $runspacePool.Open()
+
+       # Create a collection to hold the runspaces
+       $runspaces = @()
+
     $printed = $false
     if (-not $printed) {
     Write-Output "  "
@@ -119,6 +126,8 @@ function Invoke-MailboxCheck {
     }
 
     foreach ($mailbox in $mailboxes) {
+        $runspace = [powershell]::Create().AddScript({
+        param ($mailbox, $QuickRun, $Verbose)    
         
         Write-Output "====================================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
@@ -270,10 +279,24 @@ function Invoke-MailboxCheck {
                 Write-Output "  - Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
         }
-    }
+    }).AddArgument($mailbox).AddArgument($QuickRun).AddArgument($Verbose)
 
-    Disconnect-ExchangeOnline -Confirm:$false
+    $runspace.RunspacePool = $runspacePool
+    $runspaces += [PSCustomObject]@{ Pipe = $runspace; Status = $runspace.BeginInvoke() }
 }
+
+# Wait for all runspaces to complete
+$runspaces | ForEach-Object {
+    $_.Pipe.EndInvoke($_.Status)
+    $_.Pipe.Dispose()
+}
+
+# Close the runspace pool
+$runspacePool.Close()
+$runspacePool.Dispose()
+
+Disconnect-ExchangeOnline -Confirm:$false
+
 
 # Export the function as a module
 Export-ModuleMember -Function Invoke-MailboxCheck
