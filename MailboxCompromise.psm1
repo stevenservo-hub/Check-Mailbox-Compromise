@@ -43,7 +43,14 @@ function Invoke-MailboxCheck {
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
     #>
-   
+
+    param (
+        [string]$ExchangeAdmin,
+        [switch]$QuickRun,
+        [switch]$Verbose,
+        [string]$UniqUser
+    )
+
     $printed = $false
     if (-not $printed) {
     Write-Output "  "
@@ -72,20 +79,6 @@ function Invoke-MailboxCheck {
     Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX0xkXMMMMMMMM"
     $printed = $true
     }
-
-    param (
-        [string]$ExchangeAdmin,
-        [switch]$QuickRun,
-        [switch]$Verbose,
-        [string]$UniqUser
-    )
-
-       # Create a runspace pool
-       $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
-       $runspacePool.Open()
-
-       # Create a collection to hold the runspaces
-       $runspaces = @()
 
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
@@ -124,14 +117,18 @@ function Invoke-MailboxCheck {
     } catch {
         Write-Host "An error occurred: $_"
     }
+    
+    $mailboxCount = $mailboxes.Count
+    $mailboxIndex = 1
 
     foreach ($mailbox in $mailboxes) {
-        $runspace = [powershell]::Create().AddScript({
-        param ($mailbox, $QuickRun, $Verbose)    
         
         Write-Output "====================================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
+        Write-Output "Mailbox $mailboxIndex of $mailboxCount"
         Write-Output "====================================="
+        
+        $mailboxIndex++
 
         # Inbox Rules
         try {
@@ -279,24 +276,10 @@ function Invoke-MailboxCheck {
                 Write-Output "  - Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
         }
-    }).AddArgument($mailbox).AddArgument($QuickRun).AddArgument($Verbose)
+    }
 
-    $runspace.RunspacePool = $runspacePool
-    $runspaces += [PSCustomObject]@{ Pipe = $runspace; Status = $runspace.BeginInvoke() }
+    Disconnect-ExchangeOnline -Confirm:$false
 }
-
-# Wait for all runspaces to complete
-$runspaces | ForEach-Object {
-    $_.Pipe.EndInvoke($_.Status)
-    $_.Pipe.Dispose()
-}
-
-# Close the runspace pool
-$runspacePool.Close()
-$runspacePool.Dispose()
-
-Disconnect-ExchangeOnline -Confirm:$false
-
 
 # Export the function as a module
 Export-ModuleMember -Function Invoke-MailboxCheck
