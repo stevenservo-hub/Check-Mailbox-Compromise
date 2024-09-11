@@ -43,21 +43,7 @@ function Invoke-MailboxCheck {
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
     #>
-
-    param (
-        [string]$ExchangeAdmin,
-        [switch]$QuickRun,
-        [switch]$Verbose,
-        [string]$UniqUser
-    )
-
-       # Create a runspace pool
-       $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
-       $runspacePool.Open()
-
-       # Create a collection to hold the runspaces
-       $runspaces = @()
-
+   
     $printed = $false
     if (-not $printed) {
     Write-Output "  "
@@ -86,6 +72,20 @@ function Invoke-MailboxCheck {
     Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX0xkXMMMMMMMM"
     $printed = $true
     }
+
+    param (
+        [string]$ExchangeAdmin,
+        [switch]$QuickRun,
+        [switch]$Verbose,
+        [string]$UniqUser
+    )
+
+       # Create a runspace pool
+       $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+       $runspacePool.Open()
+
+       # Create a collection to hold the runspaces
+       $runspaces = @()
 
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
