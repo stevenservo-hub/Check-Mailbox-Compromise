@@ -51,6 +51,16 @@ function Invoke-MailboxCheck {
         [string]$UniqUser
     )
 
+    # Function to log messages
+    function Write-Log {
+    param (
+        [string]$Message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "$timestamp - $Message"
+    Add-Content -Path $global:LogFilePath -Value $logMessage
+    }
+
     $printed = $false
     if (-not $printed) {
     Write-Output "  "
