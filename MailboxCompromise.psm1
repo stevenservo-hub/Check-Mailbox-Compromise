@@ -204,7 +204,7 @@ function Invoke-MailboxCheck {
                     Write-Output "  - Has $($delegates.Count) delegate(s) with Full Access."
                     if ($Verbose) {
                         foreach ($delegate in $delegates) {
-                            Write-Output "    - Operation: $($delegate.Operation), Date: $($delegate.CreationDate), User: $($delegates.UserId)"
+                            Write-Output "    - Rights: $($delegate.AccessRights), Identity: $($delegate.Identity), User: $($delegate.User)"
                         }
                     }
                     } else {
@@ -281,5 +281,6 @@ function Invoke-MailboxCheck {
     Disconnect-ExchangeOnline -Confirm:$false
 }
 
-# Export the function as a module
+#   Export the function as a module
+  
 Export-ModuleMember -Function Invoke-MailboxCheck
