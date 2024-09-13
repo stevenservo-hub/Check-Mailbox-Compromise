@@ -15,6 +15,9 @@ function Invoke-MailboxCheck {
     .PARAMETER Verbose
     If specified, the function will list out all custom permissions and audit logs for each mailbox.
     
+    .PARAMETER path
+    Specify specific path to the log file. Default is C:\Windows\System32\Logs\MailboxCheck.log
+    
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com"
 
@@ -26,6 +29,10 @@ function Invoke-MailboxCheck {
 
     .EXAMPLE
     Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose
+
+    .EXAMPLE
+    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose -path "C:\example\example.log"
+
     .NOTES
     Author: Steven Spring
     Date: 2024-09-07
@@ -55,10 +62,14 @@ function Invoke-MailboxCheck {
     if ($path){
         $global:LogFilePath = $path
     } else {
-        $global:LogFilePath = "C:\Temp\MailboxCompromise.log"
+        $global:LogFilePath = "$($home)\MailboxCheck.log"
     }
 
-    # Function to log messages TODO: Add log file path / add logging writes to exchange online queries 
+    # FIXME: Add error handling for log file path / 
+    
+    # TODO: add debug information to catch errors to output to log.
+
+    # Function to log messages  
     function Write-Log {
     param (
         [string]$Message
@@ -138,12 +149,15 @@ function Invoke-MailboxCheck {
     $mailboxCount = $mailboxes.Count
     $mailboxIndex = 1
 
+
     foreach ($mailbox in $mailboxes) {
         
         Write-Output "====================================="
         Write-Output "User: $($mailbox.UserPrincipalName)"
         Write-Output "Mailbox $mailboxIndex of $mailboxCount"
         Write-Output "====================================="
+        
+        write-log -Message "User: $($mailbox.UserPrincipalName) Mailbox $mailboxIndex of $mailboxCount"
         
         $mailboxIndex++
 
