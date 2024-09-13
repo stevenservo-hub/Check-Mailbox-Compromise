@@ -48,10 +48,17 @@ function Invoke-MailboxCheck {
         [string]$ExchangeAdmin,
         [switch]$QuickRun,
         [switch]$Verbose,
-        [string]$UniqUser
+        [string]$UniqUser,
+        [string]$path
     )
+    
+    if ($path){
+        $global:LogFilePath = $path
+    } else {
+        $global:LogFilePath = "C:\Temp\MailboxCompromise.log"
+    }
 
-    # Function to log messages
+    # Function to log messages TODO: Add log file path / add logging writes to exchange online queries 
     function Write-Log {
     param (
         [string]$Message
@@ -292,5 +299,4 @@ function Invoke-MailboxCheck {
 }
 
 #   Export the function as a module
-  
 Export-ModuleMember -Function Invoke-MailboxCheck
