@@ -169,12 +169,14 @@ function Invoke-MailboxCheck {
                 Write-Output "  - Has $($inboxRules.Count) rule(s):"
                 foreach ($rule in $inboxRules) {
                     Write-Output "    - Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
+                    Write-Log -Message "Rule Name: $($rule.Name), Enabled: $($rule.Enabled), Priority: $($rule.Priority), Action: $($rule.Action)"
                 }
             } else {
                 Write-Output "  - No added rules."
             }
         } catch {
             Write-Output "  - Error retrieving inbox rules for $($mailbox.UserPrincipalName)."
+            Write-Log -Message "Error retrieving inbox rules for $($mailbox.UserPrincipalName)."
         }
 
         # Forwarding Rules
@@ -198,12 +200,14 @@ function Invoke-MailboxCheck {
                 Write-Output "  - Has $($suspiciousLogins.Count) suspicious login(s) in the past 7 days."
                 foreach ($login in $suspiciousLogins) {
                     Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
+                    write-log -Message "Logins - IP: $($login.ClientIP), Date: $($login.CreationDate)"
                 }
             } else {
                 Write-Output "  - No suspicious logins in the past 7 days."
             }
         } catch {
             Write-Output "  - Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
+            write-log -Message "Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
         }
         
         # Search for password changes in the Admin Audit Log
@@ -217,12 +221,14 @@ function Invoke-MailboxCheck {
                 Write-Output " -  Password changes found:"
                 foreach ($change in $passwordChanges) {
                     Write-Output "  - User: $($change.UserId), Date: $($change.CreationDate), Cmdlet: $($change.CmdletName)"
+                    write-log -Message "Password Change - User: $($change.UserId), Date: $($change.CreationDate), Cmdlet: $($change.CmdletName)"
                 }
             } else {
                 Write-Output "  - No password changes found in the specified date range."
             }
         } catch {
             Write-Output "An error occurred while searching for password changes: $_"
+            write-log -Message "An error occurred while searching for password changes: $_"
         }
         
         # Additional checks for full run
@@ -236,6 +242,7 @@ function Invoke-MailboxCheck {
                     if ($Verbose) {
                         foreach ($delegate in $delegates) {
                             Write-Output "    - Rights: $($delegate.AccessRights), Identity: $($delegate.Identity), User: $($delegate.User)"
+                            write-log -Message "Delegate - Rights: $($delegate.AccessRights), Identity: $($delegate.Identity), User: $($delegate.User)"
                         }
                     }
                     } else {
@@ -243,6 +250,7 @@ function Invoke-MailboxCheck {
                 }        
             } catch {
                 Write-Output "  - Error retrieving delegates for $($mailbox.UserPrincipalName)."
+                write-log -Message "Error retrieving delegates for $($mailbox.UserPrincipalName)."
             }
         
             # Mailbox Forwarding
@@ -251,11 +259,14 @@ function Invoke-MailboxCheck {
 
                 if ($mailboxForwarding) {
                     Write-Output "  - Has mailbox-level forwarding to $mailboxForwarding."
+                    write-log -Message "Has mailbox-level forwarding to $mailboxForwarding."
+
                 } else {
                     Write-Output "  - No mailbox-level forwarding."
                 }
             } catch {
                 Write-Output "  - Error retrieving mailbox-level forwarding for $($mailbox.UserPrincipalName)."
+                write-log -Message "Error retrieving mailbox-level forwarding for $($mailbox.UserPrincipalName)."
             }
 
             # Audit Logs
@@ -267,6 +278,7 @@ function Invoke-MailboxCheck {
                     if ($Verbose) {
                         foreach ($log in $auditLogs) {
                             Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
+                            write-log -Message "Log - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
                         }
                     }
                 } else {
@@ -274,6 +286,7 @@ function Invoke-MailboxCheck {
                 }
             } catch {
                 Write-Output "  - Error retrieving audit logs for $($mailbox.UserPrincipalName)."
+                Write-Log -Message "Error retrieving audit logs for $($mailbox.UserPrincipalName)."
             }
 
             # Custom Permissions
@@ -285,6 +298,7 @@ function Invoke-MailboxCheck {
                     if ($Verbose) {
                         foreach ($permission in $permissions) {
                             Write-Output "    - User: $($permission.User), Access Rights: $($permission.AccessRights)"
+                            write-log -Message "Permission - User: $($permission.User), Access Rights: $($permission.AccessRights)"
                         }
                     }
                 } else {
@@ -292,6 +306,7 @@ function Invoke-MailboxCheck {
                 }
             } catch {
                 Write-Output "  - Error retrieving custom permissions for $($mailbox.UserPrincipalName)."
+                write-log -Message "Error retrieving custom permissions for $($mailbox.UserPrincipalName)."
             }
 
             # Auto-Reply Settings
@@ -300,11 +315,14 @@ function Invoke-MailboxCheck {
 
                 if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                     Write-Output "  - Auto-reply is enabled."
+                    write-log -Message "Auto-reply is enabled."
                 } else {
                     Write-Output "  - Auto-reply is disabled."
+                    Write-Log -Message "Auto-reply is disabled."
                 }
             } catch {
                 Write-Output "  - Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
+                write-log -Message "Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
         }
     }
