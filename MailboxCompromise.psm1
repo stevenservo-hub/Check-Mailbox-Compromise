@@ -81,31 +81,41 @@ function Invoke-MailboxCheck {
 
     $printed = $false
     if (-not $printed) {
-    Write-Output "  "
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWN0kONMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWXOdc;'c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNKko:,,''':0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMWWWMMMMMMMMMMMMMMWX0xl:,,,,'''':0MMMMMMMM"
-    Write-Output "  MMMMMMMMMWNKOxdx0XWWMMMMMMMWKOdc;,,,,,;;,'''c0MMMMMMMM"
-    Write-Output "  MMMMMMMMWXxl:::::lkXWMMWN0koc;,,,,;:oxOd;''':0MMMMMMMM"
-    Write-Output "  MMMMMMMMMNKOdlclx0XNWX0xl:;;;,;;cdOKNWWO;',':0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMWXXNWNKkdl:;;;;;cox0XWMMMMWO:,,'c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMWWN0koc::;;::cdOKNWWWMMMMMWO:,,'c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMWNKOxoc:::::cox0XWWNKkdxOKWMMWO:,,,c0MMMMMMMM"
-    Write-Output "  MMMMMMWNKkdlc::::cldkKNWMMNOo:;;;;cok0Xk:,,,c0MMMMMMMM"
-    Write-Output "  MMMMMMNklc::::::cd0NWMMMMMWXOdl:;;,,;:cc;,,,c0MMMMMMMM"
-    Write-Output "  MMMMMMWXOxocc::::coxOXWMMMMMMWX0xl:;,,,,,,,,c0MMMMMMMW"
-    Write-Output "  MMMMMMMMMWXKkdlc::::cldkKNWMMMMMWNKkdc;,,,,,c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMWNXOxoc:::::cox0XWMMMMMMWXOdl:,,c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMWWX0koc::::::ldkKNWMMMMMWNKkodKMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMWNKOdlc:::;:cox0XWMMMMMMWNWMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMWWX0xoc::;;;:ldOKNWMMMMMMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMWNKkdl:;;;;;cox0NWMMMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXOdl:;;;;;:ld0NMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWN0koc;;;;;lKMMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNKOdl:;c0MMMMMMMM"
-    Write-Output "  MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX0xkXMMMMMMMM"
+        write-output "                                                                "                 
+        write-output "                                                                "             
+        write-output "        :-----------------:.            :++++++++++++++++++:    "        
+        write-output "        :--------------------:         :+++++++++++++++++++++:  "         
+        write-output "       .-----------------------:     .+++++++++++++++++++++++-  "         
+        write-output "        -------------------------: .+++++++++++++++++++++++++-  "         
+        write-output "        ---------------------------++++++++++++++++++++++++++-  "         
+        write-output "       .---------------------------++++++++++++++++++++++++++-  "         
+        write-output ":###############################=--++++++++++++++++++++++++++-  "         
+        write-output "*###############################*--++++++++++++++++++++++++++-  "         
+        write-output "*###############################*--++++++++++++++++++++++++++-  "         
+        write-output "*##########*********############*--++++++++++++++++++++++++++-  "         
+        write-output "##########.         .###########*--++++++++++++++++++++++++++   "         
+        write-output "##########.  :*******###########*-=++++++++++++++++++++++++.    "         
+        write-output "##########.  -##################*=+++++++++++++++++++++++:      "         
+        write-output "##########.  .++++++#############++++++++++++++++++++++:        "         
+        write-output "##########.         =##########%#++++++**#############-         "         
+        write-output "##########.  -#################%#+++*###################.       "         
+        write-output "##########.  -#################%#++*#####################*.     "         
+        write-output "##########.   .......##########%#++########################*    "         
+        write-output "##########.          ##########%#++##########################:  "         
+        write-output "###############################%#++##########################+  "         
+        write-output "###############################%#++##########################+  "         
+        write-output "*##############################%#++##########################+  "         
+        write-output " +##########################%%%%#++##########################+  "         
+        write-output "       .%%%%%%%%%%%%%%%%%%%%%%%#*++##########################+  "         
+        write-output "       .***********************++++##########################+  "         
+        write-output "       .++++++++++++++++++++++++=.  -########################+  "         
+        write-output "       .+++++++++++++++++++++++.      +######################+  "         
+        write-output "        =++++++++++++++++++++:          *####################:  "         
+        write-output "         .-+++++++++++++++=.              =################-    "         
+        write-output "                                                                "             
     $printed = $true
+    }
+
     }
 
     # Check if ExchangeOnlineManagement module is installed
@@ -326,9 +336,9 @@ function Invoke-MailboxCheck {
             }
         }
     }
-
-    Disconnect-ExchangeOnline -Confirm:$false
 }
+    Disconnect-ExchangeOnline -Confirm:$false
+
 
 #   Export the function as a module
 Export-ModuleMember -Function Invoke-MailboxCheck
