@@ -116,7 +116,6 @@ function Invoke-MailboxCheck {
     $printed = $true
     }
 
-    }
 
     # Check if ExchangeOnlineManagement module is installed
     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
@@ -336,9 +335,9 @@ function Invoke-MailboxCheck {
             }
         }
     }
-}
-    Disconnect-ExchangeOnline -Confirm:$false
 
+    Disconnect-ExchangeOnline -Confirm:$false
+}
 
 #   Export the function as a module
 Export-ModuleMember -Function Invoke-MailboxCheck
