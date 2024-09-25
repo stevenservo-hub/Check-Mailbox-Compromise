@@ -117,13 +117,17 @@ function Invoke-MailboxCheck {
     }
 
 
-    # Check if ExchangeOnlineManagement module is installed
-    if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
-        Write-Output "The ExchangeOnlineManagement module is not installed. Please install it using the following command:"
-        Write-Output "Install-Module -Name ExchangeOnlineManagement -Force -AllowClobber"
-        Exit
-    }
-
+     # Check if ExchangeOnlineManagement module is installed
+     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
+         try {
+             Install-Module -Name ExchangeOnlineManagement -Force -ErrorAction Stop
+             Write-Output "ExchangeOnlineManagement module installed successfully."
+         } catch {
+             Write-Output "Failed to install ExchangeOnlineManagement module. Error: $_"
+             Exit
+         }
+     }
+   
     # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
