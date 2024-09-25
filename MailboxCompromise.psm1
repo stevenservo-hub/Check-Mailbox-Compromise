@@ -28,7 +28,8 @@ function Invoke-MailboxCheck {
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -Verbose
 
     .EXAMPLE
-    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose
+    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose:w
+
 
     .EXAMPLE
     Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose -path "C:\example\example.log"
@@ -133,6 +134,7 @@ function Invoke-MailboxCheck {
     $retryDelay = 5 # seconds
     $connected = $false
 
+    # Attempt to connect to Exchange Online with retry logic
     for ($i = 0; $i -lt $retryCount; $i++) {
         try {
             Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
@@ -149,6 +151,7 @@ function Invoke-MailboxCheck {
         Exit
     }
 
+    # Get mailboxes
     try {
         if ($UniqUser) {
             $mailboxes = Get-Mailbox -Identity $UniqUser
@@ -162,7 +165,7 @@ function Invoke-MailboxCheck {
     $mailboxCount = $mailboxes.Count
     $mailboxIndex = 1
 
-
+    #main loop
     foreach ($mailbox in $mailboxes) {
         
         Write-Output "====================================="
