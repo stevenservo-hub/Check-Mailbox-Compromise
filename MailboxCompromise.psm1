@@ -70,6 +70,11 @@ function Invoke-MailboxCheck {
     
     # TODO: add debug information to catch errors to output to log.
 
+    # functions
+
+    # Toolbox functions
+    # TODO: Add Toolbox functions.
+
     # Function to log messages  
     function Write-Log {
     param (
@@ -341,8 +346,9 @@ function Invoke-MailboxCheck {
                 write-log -Message "Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
         }
-    }
+    } # end of main loop
 
+    # Gracefully disconnect from Exchange Online
     Disconnect-ExchangeOnline -Confirm:$false
 }
 
