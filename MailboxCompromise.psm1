@@ -73,8 +73,38 @@ function Invoke-MailboxCheck {
     # functions
 
     # Toolbox functions
-    # TODO: Add Toolbox functions.
+    
+    # TODO: Add additional toolbox functions
 
+    #reset passwsord function
+    function reset-password {   
+    param (
+        [string] $user
+    )
+    
+    try {
+        # Generate a random password
+        $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
+        
+        # Reset the user's password
+        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
+        
+        Write-Log "Password for user $user has been reset to $newPassword"
+        Write-Output "Password for user $user has been reset successfully."
+    } catch {
+        Write-Log "Failed to reset password for user $user. Error: $_"
+        Write-Output "Failed to reset password for user $user. Error: $_"
+    }
+    }
+    
+    # function to revoke sessions
+    function revoke-sessions {
+    param (
+        [string] $user
+    )
+
+    } 
+    
     # Function to log messages  
     function Write-Log {
     param (
@@ -236,7 +266,7 @@ function Invoke-MailboxCheck {
            $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
             $endDate = Get-Date
         
-            $passwordChanges = Search-AdminAuditLog -StartDate $startDate -EndDate $endDate -Cmdlets Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword 3>$null
+            $passwordChanges = Search-UnifiedAuditLog -StartDate $startDate -EndDate $endDate -Operations Set-MsolUserPassword, Set-AzureADUserPassword, Set-UserPassword
         
             if ($passwordChanges.Count -gt 0) {
                 Write-Output " -  Password changes found:"
