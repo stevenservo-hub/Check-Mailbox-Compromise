@@ -34,8 +34,10 @@ function Invoke-MailboxCheck {
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com" -Verbose
 
     .EXAMPLE
-    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose:w
+    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose
 
+    .EXAMPLE
+    Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com -PassReset
 
     .EXAMPLE
     Check-MailboxCompromise -UniqUser "user@example.com" -ExchangeAdmin "admin@example.com" -Verbose -path "C:\example\example.log"
