@@ -17,6 +17,12 @@ function Invoke-MailboxCheck {
     
     .PARAMETER path
     Specify specific path to the log file. Default is C:\Windows\System32\Logs\MailboxCheck.log
+
+    .PARAMETER UniqUser
+    Specify a specific user to check. If not provided, all mailboxes will be checked.
+
+    .PARAMETER PassReset
+    If specified, the function will reset the password for the specified user.
     
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com"
@@ -57,7 +63,8 @@ function Invoke-MailboxCheck {
         [switch]$QuickRun,
         [switch]$Verbose,
         [string]$UniqUser,
-        [string]$path
+        [string]$path,
+        [string ]$PassReset
     )
     
     if ($path){
@@ -76,10 +83,32 @@ function Invoke-MailboxCheck {
     
     # TODO: Add additional toolbox functions
 
-    #reset passwsord function
+    #reset passwsord check
+    if ($passReset) {
+        # Check if ExchangeAdmin is provided, if not prompt the user
+        if (-not $ExchangeAdmin) {
+            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+        }
+    
+        # Check if UniqUser is provided, if not prompt the user
+        if (-not $UniqUser) {
+            $UniqUser = Read-Host "Please enter the unique user"
+        }
+    
+        Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
+    
+        # Call the reset-password function with the provided or prompted UniqUser
+        reset-password -uniquser $UniqUser
+        finally {
+            # Ensure we disconnect from Exchange Online
+            Disconnect-ExchangeOnline -Confirm:$false
+            # Exit the script
+            exit
+        }
+    }
     function reset-password {   
     param (
-        [string] $user
+        [string] $uniquser
     )
     
     try {
@@ -87,20 +116,22 @@ function Invoke-MailboxCheck {
         $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
         
         # Reset the user's password
-        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
+        Set-Mailbox -Identity $uniquser -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
         
-        Write-Log "Password for user $user has been reset to $newPassword"
-        Write-Output "Password for user $user has been reset successfully."
+        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
+        Write-Output "Password for user $uniquser has been reset to $newPassword"
+        #password will not be logged to the log file to ensure security.
+        Write-Log "Password for user $uniquser has been reset successfully."
     } catch {
-        Write-Log "Failed to reset password for user $user. Error: $_"
-        Write-Output "Failed to reset password for user $user. Error: $_"
+        Write-Log "Failed to reset password for user $uniquser. Error: $_"
+        Write-Output "Failed to reset password for user $uniquser. Error: $_"
     }
     }
     
     # function to revoke sessions
     function revoke-sessions {
     param (
-        [string] $user
+        [string] $uniquser
     )
 
     } 
