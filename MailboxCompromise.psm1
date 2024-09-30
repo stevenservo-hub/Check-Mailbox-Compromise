@@ -75,8 +75,6 @@ function Invoke-MailboxCheck {
         $global:LogFilePath = "$($home)\MailboxCheck.log"
     }
 
-    # FIXME: Add error handling for log file path / 
-    
     # TODO: add debug information to catch errors to output to log.
 
     # functions
@@ -87,12 +85,11 @@ function Invoke-MailboxCheck {
 
     #reset passwsord check
     if ($passReset) {
-        # Check if ExchangeAdmin is provided, if not prompt the user
+
         if (-not $ExchangeAdmin) {
             $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
         }
     
-        # Check if UniqUser is provided, if not prompt the user
         if (-not $UniqUser) {
             $UniqUser = Read-Host "Please enter the unique user"
         }
@@ -102,9 +99,8 @@ function Invoke-MailboxCheck {
         # Call the reset-password function with the provided or prompted UniqUser
         reset-password -uniquser $UniqUser
         finally {
-            # Ensure we disconnect from Exchange Online
+
             Disconnect-ExchangeOnline -Confirm:$false
-            # Exit the script
             exit
         }
     }
@@ -114,15 +110,14 @@ function Invoke-MailboxCheck {
     )
     
     try {
-        # Generate a random password
+        
         $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
         
-        # Reset the user's password
         Set-Mailbox -Identity $uniquser -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
         
         # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
         Write-Output "Password for user $uniquser has been reset to $newPassword"
-        #password will not be logged to the log file to ensure security.
+        # Password will not be logged to the log file to ensure security.
         Write-Log "Password for user $uniquser has been reset successfully."
     } catch {
         Write-Log "Failed to reset password for user $uniquser. Error: $_"
