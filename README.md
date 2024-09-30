@@ -1,14 +1,24 @@
 # Invoke-mailboxcheck Module
 
-## Future Intent
-My intent is for this module to eventually become part of a fully menu-driven toolbox. This toolbox will enable users to perform various administrative tasks such as:
+### Synopsis of MailboxCompromise Tool
+ 
+#### Overview
+The `MailboxCompromise` tool is a PowerShell module designed to help administrators manage and secure Exchange Online mailboxes. It provides functionalities to check mailboxes for suspicious activities, reset user passwords, and revoke user sessions. The tool can be run with various parameters to customize its behavior, making it flexible for different administrative needs.
+ 
+#### Features
+ 
+1. **Check Mailboxes for Suspicious Activity**
+   - **QuickRun**: Checks inbox rules, suspicious login activity, and forwarding rules.
+   - **Verbose**: Lists all custom permissions and audit logs for each mailbox.
+   - **UniqUser**: Allows checking a specific user's mailbox.
+   - **Log Path**: Specify a custom path for the log file.
+ 
+2. **Reset User Password**
+   - **PassReset**: Resets the password for the specified user.
+ 
+3. **Revoke User Sessions**
+   - **Revoke-Sessions**: Revokes all active sessions for a specified user.
 
-- Running mailbox checks for compromise
-- Changing passwords
-- Disabling accounts
-- Removing rules
-  
-This will streamline and simplify the management of Exchange Online environments, making it easier for administrators to maintain security and efficiency.
 
 ## Prerequisites
 
