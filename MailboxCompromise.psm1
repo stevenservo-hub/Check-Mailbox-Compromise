@@ -66,7 +66,8 @@ function Invoke-MailboxCheck {
         [switch]$Verbose,
         [string]$UniqUser,
         [string]$path,
-        [string ]$PassReset
+        [string]$PassReset,
+        [string]$revokesession
     )
     
     if ($path){
@@ -74,8 +75,6 @@ function Invoke-MailboxCheck {
     } else {
         $global:LogFilePath = "$($home)\MailboxCheck.log"
     }
-
-    # TODO: add debug information to catch errors to output to log.
 
     # functions
 
@@ -125,14 +124,31 @@ function Invoke-MailboxCheck {
     }
     }
     
+    # TODO: complete the revoke session function
     # function to revoke sessions
-    function revoke-sessions {
-    param (
-        [string] $uniquser
-    )
-
-    } 
-    
+#    if ($revokesession) {
+#
+#        if (-not $ExchangeAdmin) {
+#            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+#        }
+#    
+#        if (-not $UniqUser) {
+#            $UniqUser = Read-Host "Please enter the unique user"
+#        }
+#    
+#    
+#        finally {
+#
+#            exit
+#        }
+#    }
+#    function revoke-sessions {
+#    param (
+#        [string] $uniquser
+#    )
+#
+#    } 
+#    
     # Function to log messages  
     function Write-Log {
     param (
