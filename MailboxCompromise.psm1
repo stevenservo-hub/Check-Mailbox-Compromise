@@ -66,8 +66,8 @@ function Invoke-MailboxCheck {
         [switch]$Verbose,
         [string]$UniqUser,
         [string]$path,
-        [string]$PassReset,
-        [string]$revokesession
+        [switch]$PassReset
+       # [switch]$revokesession
     )
     
     if ($path){
@@ -84,7 +84,7 @@ function Invoke-MailboxCheck {
 
     #reset passwsord check
     if ($passReset) {
-
+        try {
         if (-not $ExchangeAdmin) {
             $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
         }
@@ -97,8 +97,9 @@ function Invoke-MailboxCheck {
     
         # Call the reset-password function with the provided or prompted UniqUser
         reset-password -uniquser $UniqUser
+        
+    }
         finally {
-
             Disconnect-ExchangeOnline -Confirm:$false
             exit
         }
@@ -159,8 +160,6 @@ function Invoke-MailboxCheck {
     Add-Content -Path $global:LogFilePath -Value $logMessage
     }
 
-    $printed = $false
-    if (-not $printed) {
         write-output "                                                                "                 
         write-output "                                                                "             
         write-output "        :-----------------:.            :++++++++++++++++++:    "        
@@ -193,9 +192,6 @@ function Invoke-MailboxCheck {
         write-output "        =++++++++++++++++++++:          *####################:  "         
         write-output "         .-+++++++++++++++=.              =################-    "         
         write-output "                                                                "             
-    $printed = $true
-    }
-
 
      # Check if ExchangeOnlineManagement module is installed
      if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
@@ -213,6 +209,7 @@ function Invoke-MailboxCheck {
     $retryDelay = 5 # seconds
     $connected = $false
 
+    
     # Attempt to connect to Exchange Online with retry logic
     for ($i = 0; $i -lt $retryCount; $i++) {
         try {
