@@ -64,7 +64,7 @@ function Invoke-MailboxCheck {
         [string]$ExchangeAdmin,
         [switch]$QuickRun,
         [switch]$Verbose,
-        [string]$UniqUser,
+        [string]$user,
         [string]$path,
         [switch]$PassReset
        # [switch]$revokesession
@@ -82,84 +82,7 @@ function Invoke-MailboxCheck {
     
     # TODO: Add additional toolbox functions
 
-    #reset passwsord check
-    if ($passReset) {
-        try {
-        if (-not $ExchangeAdmin) {
-            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
-        }
-    
-        if (-not $UniqUser) {
-            $UniqUser = Read-Host "Please enter the unique user"
-        }
-    
-        Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
-    
-        # Call the reset-password function with the provided or prompted UniqUser
-        reset-password -uniquser $UniqUser
-        
-    }
-        finally {
-            Disconnect-ExchangeOnline -Confirm:$false
-            exit
-        }
-    }
-    function reset-password {   
-    param (
-        [string] $uniquser
-    )
-    
-    try {
-        
-        $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
-        
-        Set-Mailbox -Identity $uniquser -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
-        
-        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
-        Write-Output "Password for user $uniquser has been reset to $newPassword"
-        # Password will not be logged to the log file to ensure security.
-        Write-Log "Password for user $uniquser has been reset successfully."
-    } catch {
-        Write-Log "Failed to reset password for user $uniquser. Error: $_"
-        Write-Output "Failed to reset password for user $uniquser. Error: $_"
-    }
-    }
-    
-    # TODO: complete the revoke session function
-    # function to revoke sessions
-#    if ($revokesession) {
-#
-#        if (-not $ExchangeAdmin) {
-#            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
-#        }
-#    
-#        if (-not $UniqUser) {
-#            $UniqUser = Read-Host "Please enter the unique user"
-#        }
-#    
-#    
-#        finally {
-#
-#            exit
-#        }
-#    }
-#    function revoke-sessions {
-#    param (
-#        [string] $uniquser
-#    )
-#
-#    } 
-#    
-    # Function to log messages  
-    function Write-Log {
-    param (
-        [string]$Message
-    )
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logMessage = "$timestamp - $Message"
-    Add-Content -Path $global:LogFilePath -Value $logMessage
-    }
-
+function AsciiArt {
         write-output "                                                                "                 
         write-output "                                                                "             
         write-output "        :-----------------:.            :++++++++++++++++++:    "        
@@ -191,7 +114,107 @@ function Invoke-MailboxCheck {
         write-output "       .+++++++++++++++++++++++.      +######################+  "         
         write-output "        =++++++++++++++++++++:          *####################:  "         
         write-output "         .-+++++++++++++++=.              =################-    "         
-        write-output "                                                                "             
+}
+    #reset passwsord check
+    if ($passReset) {
+        try {
+        if (-not $ExchangeAdmin) {
+            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+        }
+    
+        if (-not $user) {
+            $user = Read-Host "Please enter the unique user"
+        }
+    
+        Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
+    
+        # Call the reset-password function with the provided or prompted UniqUser
+        reset-password -uniquser $user
+        
+    }
+        finally {
+            Disconnect-ExchangeOnline -Confirm:$false
+            exit
+        }
+    }
+    function reset-password {   
+    param (
+        [string] $user,
+        [string] $asciiart
+    )
+    
+    AsciiArt
+
+    try {
+        
+        $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
+        
+        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
+        
+        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
+        Write-Output "Password for user $user has been reset to $newPassword"
+        # Password will not be logged to the log file to ensure security.
+        Write-Log "Password for user $user has been reset successfully."
+    } catch {
+        Write-Log "Failed to reset password for user $user. Error: $_"
+        Write-Output "Failed to reset password for user $user. Error: $_"
+    }
+    }
+   
+    function Revoke-Session {
+        param(
+            [string]$ExchangeAdmin,
+            [string]$user,
+            [string]$AsciiArt
+        )
+
+        AsciiArt
+
+        if ($revokeSession) {
+            try {
+                if (-not $ExchangeAdmin) {
+                    $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+                }
+        
+                if (-not $user) {
+                    $user = Read-Host "Please enter the unique user"
+                }
+        
+                # Prompt for Exchange Admin credentials securely
+                $ExchangeAdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
+        
+                # Connect to Azure AD
+                Connect-AzureAD -Credential $ExchangeAdminCredential
+        
+                # Revoke the user's refresh tokens
+                $getuser = Get-AzureADUser -UserPrincipalName $user
+                Revoke-AzureADUserAllRefreshToken -ObjectId $getuser.ObjectId
+        
+                Write-Output "Session for user $user has been revoked successfully."
+            }
+            catch {
+                Write-Log "Failed to revoke session for user $user. Error: $_"
+                Write-Output "Failed to revoke session for user $user. Error: $_"
+            }
+            finally {
+                # Disconnect from Azure AD
+                Disconnect-AzureAD
+                exit
+            }
+        }
+    }
+
+    # Function to log messages  
+    function Write-Log {
+    param (
+        [string]$Message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "$timestamp - $Message"
+    Add-Content -Path $global:LogFilePath -Value $logMessage
+    }
+
+    AsciiArt
 
      # Check if ExchangeOnlineManagement module is installed
      if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
@@ -229,8 +252,8 @@ function Invoke-MailboxCheck {
 
     # Get mailboxes
     try {
-        if ($UniqUser) {
-            $mailboxes = Get-Mailbox -Identity $UniqUser
+        if ($user) {
+            $mailboxes = Get-Mailbox -Identity $user
         } else {
             $mailboxes = Get-Mailbox -ResultSize Unlimited
         }
