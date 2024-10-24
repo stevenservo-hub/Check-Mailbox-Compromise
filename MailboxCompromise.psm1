@@ -6,7 +6,7 @@ function Invoke-MailboxCheck {
     .DESCRIPTION
     This function connects to Exchange Online and checks mailboxes for inbox rules, suspicious login activity, forwarding rules, and other potential signs of compromise. It can perform a quick run or a full check based on the provided parameters.
 
-    .PARAMETER ExchangeAdmin
+    .PARAMETER Admin
     The User Principal Name (UPN) of the Exchange Online administrator.
 
     .PARAMETER QuickRun
@@ -18,11 +18,20 @@ function Invoke-MailboxCheck {
     .PARAMETER path
     Specify specific path to the log file. Default is C:\Windows\System32\Logs\MailboxCheck.log
 
-    .PARAMETER UniqUser
+    .PARAMETER User
     Specify a specific user to check. If not provided, all mailboxes will be checked.
 
     .PARAMETER PassReset
     If specified, the function will reset the password for the specified user.
+
+    .PARAMETER RevokeSession    
+    If specified, the function will revoke the user's refresh tokens.
+
+    .PARAMETER EmailSearch
+    Specify an email address to search for emails received from and responded to by the user.
+
+    .PARAMETER ContentSearch  
+    Specify a keyword to search for in the email content.
     
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com"
@@ -61,13 +70,15 @@ function Invoke-MailboxCheck {
     #>
 
     param (
-        [string]$ExchangeAdmin,
+        [string]$Admin,
         [switch]$QuickRun,
         [switch]$Verbose,
         [string]$user,
         [string]$path,
-        [switch]$PassReset
-       # [switch]$revokesession
+        [switch]$PassReset,
+        [switch]$revokesession,
+        [string]$EmailSearch,
+        [string]$ContentSearch
     )
     
     if ($path){
@@ -81,7 +92,6 @@ function Invoke-MailboxCheck {
     # Toolbox functions
     
     # TODO: Add additional toolbox functions
-
 function AsciiArt {
         write-output "                                                                "                 
         write-output "                                                                "             
@@ -115,18 +125,19 @@ function AsciiArt {
         write-output "        =++++++++++++++++++++:          *####################:  "         
         write-output "         .-+++++++++++++++=.              =################-    "         
 }
+
     #reset passwsord check
     if ($passReset) {
         try {
-        if (-not $ExchangeAdmin) {
-            $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+        if (-not $Admin) {
+            $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
         }
     
         if (-not $user) {
             $user = Read-Host "Please enter the unique user"
         }
     
-        Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
+        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
     
         # Call the reset-password function with the provided or prompted UniqUser
         reset-password -uniquser $user
@@ -163,7 +174,7 @@ function AsciiArt {
    
     function Revoke-Session {
         param(
-            [string]$ExchangeAdmin,
+            [string]$Admin,
             [string]$user,
             [string]$AsciiArt
         )
@@ -172,38 +183,33 @@ function AsciiArt {
 
         if ($revokeSession) {
             try {
-                if (-not $ExchangeAdmin) {
-                    $ExchangeAdmin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+                if (-not $Admin) {
+                    $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
                 }
         
                 if (-not $user) {
                     $user = Read-Host "Please enter the unique user"
                 }
         
-                # Prompt for Exchange Admin credentials securely
-                $ExchangeAdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
+                $AdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
         
-                # Connect to Azure AD
-                Connect-AzureAD -Credential $ExchangeAdminCredential
+                Connect-AzureAD -Credential $AdminCredential
         
                 # Revoke the user's refresh tokens
                 $getuser = Get-AzureADUser -UserPrincipalName $user
                 Revoke-AzureADUserAllRefreshToken -ObjectId $getuser.ObjectId
         
                 Write-Output "Session for user $user has been revoked successfully."
-            }
-            catch {
+            } catch {
                 Write-Log "Failed to revoke session for user $user. Error: $_"
                 Write-Output "Failed to revoke session for user $user. Error: $_"
-            }
-            finally {
-                # Disconnect from Azure AD
+            } finally {
+
                 Disconnect-AzureAD
                 exit
             }
         }
     }
-
     # Function to log messages  
     function Write-Log {
     param (
@@ -236,7 +242,7 @@ function AsciiArt {
     # Attempt to connect to Exchange Online with retry logic
     for ($i = 0; $i -lt $retryCount; $i++) {
         try {
-            Connect-ExchangeOnline -UserPrincipalName $ExchangeAdmin -WarningAction SilentlyContinue
+            Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
             $connected = $true
             break
         } catch {
@@ -275,6 +281,38 @@ function AsciiArt {
         write-log -Message "User: $($mailbox.UserPrincipalName) Mailbox $mailboxIndex of $mailboxCount"
         
         $mailboxIndex++
+        
+        if ($ContentSearch)
+        {
+            Try {
+            Write-Output "Searching for emails containing $contentSearch..."
+    
+            $contentSearchResults = Search-Mailbox -Identity $User -SearchQuery "Content:$contentSearch" -LogOnly -LogLevel Full
+            Write-Output "Emails containing $contentSearch : $($contentSearchResults.ResultItems.Count)"
+                foreach ($result in $contentSearchResults.ResultItems) {
+                    Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+                    write-log -Message "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+                }
+                }
+        catch {
+            Write-Output "An error occurred while searching for emails: $_"
+        }
+        }
+
+        if ($EmailSearch) {
+            Try {
+            Write-Output "Searching for emails received from and responded to $EmailSearch..."
+    
+            $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
+            Write-Output "Received emails from $EmailSearch : $($receivedEmails.ResultItems.Count)"
+    
+            $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
+            Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
+        }
+        catch {
+            Write-Output "An error occurred while searching for emails: $_"
+        }
+        }
 
         # Inbox Rules
         try {
