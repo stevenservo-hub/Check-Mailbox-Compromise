@@ -100,7 +100,7 @@ function Invoke-MailboxCheck {
     # Toolbox functions
     
     # TODO: Add additional toolbox functions
-function AsciiArt {
+    function AsciiArt {
         write-output "                                                                "                 
         write-output "                                                                "             
         write-output "        :-----------------:.            :++++++++++++++++++:    "        
@@ -132,7 +132,7 @@ function AsciiArt {
         write-output "       .+++++++++++++++++++++++.      +######################+  "         
         write-output "        =++++++++++++++++++++:          *####################:  "         
         write-output "         .-+++++++++++++++=.              =################-    "         
-}
+    }
 
     #reset passwsord check
     if ($passReset) {
@@ -253,12 +253,9 @@ function AsciiArt {
             # Call the reset-password function with the provided or prompted UniqUser
             EmailSearch -uniquser $user
             
-        }
-            
-        catch {
+        } catch {
         write-output "an error occurred while attempting to connect to Exchange Online: $_"
-        }
-            finally {
+        } finally {
                 Disconnect-ExchangeOnline -Confirm:$false
                 exit
             }
@@ -272,7 +269,7 @@ function AsciiArt {
             [string] $EmailSearch,
             [string] $AsciiArt
         )
-            Try {
+        Try {
             Write-Output "Searching for emails received from and responded to $EmailSearch..."
     
             $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
@@ -280,10 +277,9 @@ function AsciiArt {
     
             $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
             Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
-        }
-        catch {
+        } catch {
             Write-Output "An error occurred while searching for emails: $_"
-    }
+        }
     }
 
     # TODO: Add regex validation for StartDate and EndDate
@@ -304,12 +300,9 @@ function AsciiArt {
             # Call the reset-password function with the provided or prompted UniqUser
             ContentSearch -uniquser $user
             
-        }
-            
-        catch {
+        } catch {
         write-output "an error occurred while attempting to connect to Exchange Online: $_"
-        }
-            finally {
+        } finally {
                 Disconnect-ExchangeOnline -Confirm:$false
                 exit
             }
