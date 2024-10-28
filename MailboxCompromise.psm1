@@ -33,6 +33,12 @@ function Invoke-MailboxCheck {
     .PARAMETER ContentSearch  
     Specify a keyword to search for in the email content.
     
+    .PARAMETER StartDate
+    Specify the start date for the content search.
+    
+    .PARAMETER EndDate 
+    Specify the end date for the content search.
+
     .EXAMPLE
     Check-MailboxCompromise -ExchangeAdmin "admin@example.com"
 
@@ -78,7 +84,9 @@ function Invoke-MailboxCheck {
         [switch]$PassReset,
         [switch]$revokesession,
         [string]$EmailSearch,
-        [string]$ContentSearch
+        [string]$ContentSearch,
+        [datetime]$StartDate,
+        [datetime]$EndDate
     )
     
     if ($path){
@@ -143,6 +151,10 @@ function AsciiArt {
         reset-password -uniquser $user
         
     }
+        
+    catch {
+        write-output "an error occurred while attempting to connect to Exchange Online: $_"
+    }
         finally {
             Disconnect-ExchangeOnline -Confirm:$false
             exit
@@ -172,6 +184,32 @@ function AsciiArt {
     }
     }
    
+    if ($revokeSession) {
+        
+        try {
+        if (-not $Admin) {
+            $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+        }
+    
+        if (-not $user) {
+            $user = Read-Host "Please enter the unique user"
+        }
+    
+        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+    
+        # Call the reset-password function with the provided or prompted UniqUser
+        reset-password -uniquser $user
+        
+    }
+        
+    catch {
+        write-output "an error occurred while attempting to connect to Azure Online: $_"
+    }
+        finally {
+            Disconnect-AzureAD -Confirm:$false
+            exit
+        }
+   }
     function Revoke-Session {
         param(
             [string]$Admin,
@@ -181,16 +219,7 @@ function AsciiArt {
 
         AsciiArt
 
-        if ($revokeSession) {
             try {
-                if (-not $Admin) {
-                    $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
-                }
-        
-                if (-not $user) {
-                    $user = Read-Host "Please enter the unique user"
-                }
-        
                 $AdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
         
                 Connect-AzureAD -Credential $AdminCredential
@@ -203,13 +232,122 @@ function AsciiArt {
             } catch {
                 Write-Log "Failed to revoke session for user $user. Error: $_"
                 Write-Output "Failed to revoke session for user $user. Error: $_"
-            } finally {
-
-                Disconnect-AzureAD
-                exit
             }
         }
+
+
+
+    if ($EmailSearch) {
+
+        try {
+            if (-not $Admin) {
+                $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+            }
+        
+            if (-not $user) {
+                $user = Read-Host "Please enter the unique user"
+            }
+        
+            Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+        
+            # Call the reset-password function with the provided or prompted UniqUser
+            EmailSearch -uniquser $user
+            
+        }
+            
+        catch {
+        write-output "an error occurred while attempting to connect to Exchange Online: $_"
+        }
+            finally {
+                Disconnect-ExchangeOnline -Confirm:$false
+                exit
+            }
+        
     }
+
+    function EmailSearch {
+
+        param (
+            [string] $UniqUser,
+            [string] $EmailSearch,
+            [string] $AsciiArt
+        )
+            Try {
+            Write-Output "Searching for emails received from and responded to $EmailSearch..."
+    
+            $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
+            Write-Output "Received emails from $EmailSearch : $($receivedEmails.ResultItems.Count)"
+    
+            $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
+            Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
+        }
+        catch {
+            Write-Output "An error occurred while searching for emails: $_"
+    }
+    }
+
+    # TODO: Add regex validation for StartDate and EndDate
+
+    if ($ContentSearch) {
+
+        try {
+            if (-not $Admin) {
+                $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+            }
+        
+            if (-not $user) {
+                $user = Read-Host "Please enter the unique user"
+            }
+        
+            Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+        
+            # Call the reset-password function with the provided or prompted UniqUser
+            ContentSearch -uniquser $user
+            
+        }
+            
+        catch {
+        write-output "an error occurred while attempting to connect to Exchange Online: $_"
+        }
+            finally {
+                Disconnect-ExchangeOnline -Confirm:$false
+                exit
+            }
+    }
+    function ContentSearch {
+        param (
+            [string] $UniqUser,
+            [string] $ContentSearch,
+            [datetime] $StartDate,
+            [datetime] $EndDate,
+            [switch] $AsciiArt
+        )
+
+        AsciiArt
+
+        try {
+            Write-Output "Searching for emails containing $ContentSearch..."
+    
+            # Build the search query
+            $searchQuery = "Content:$ContentSearch"
+            if ($StartDate) {
+                $searchQuery += " AND Received>=$($StartDate.ToString('yyyy-MM-dd'))"
+            }
+            if ($EndDate) {
+                $searchQuery += " AND Received<=$($EndDate.ToString('yyyy-MM-dd'))"
+            }
+    
+            $contentSearchResults = Search-Mailbox -Identity $UniqUser -SearchQuery $searchQuery -LogOnly -LogLevel Full
+            Write-Output "Emails containing $ContentSearch : $($contentSearchResults.ResultItems.Count)"
+            foreach ($result in $contentSearchResults.ResultItems) {
+                Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+                Write-Log -Message "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+            }
+        }
+        catch {
+            Write-Output "An error occurred while searching for emails: $_"
+        }
+
     # Function to log messages  
     function Write-Log {
     param (
@@ -282,38 +420,6 @@ function AsciiArt {
         
         $mailboxIndex++
         
-        if ($ContentSearch)
-        {
-            Try {
-            Write-Output "Searching for emails containing $contentSearch..."
-    
-            $contentSearchResults = Search-Mailbox -Identity $User -SearchQuery "Content:$contentSearch" -LogOnly -LogLevel Full
-            Write-Output "Emails containing $contentSearch : $($contentSearchResults.ResultItems.Count)"
-                foreach ($result in $contentSearchResults.ResultItems) {
-                    Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
-                    write-log -Message "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
-                }
-                }
-        catch {
-            Write-Output "An error occurred while searching for emails: $_"
-        }
-        }
-
-        if ($EmailSearch) {
-            Try {
-            Write-Output "Searching for emails received from and responded to $EmailSearch..."
-    
-            $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
-            Write-Output "Received emails from $EmailSearch : $($receivedEmails.ResultItems.Count)"
-    
-            $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
-            Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
-        }
-        catch {
-            Write-Output "An error occurred while searching for emails: $_"
-        }
-        }
-
         # Inbox Rules
         try {
             $inboxRules = Get-InboxRule -Mailbox $mailbox.UserPrincipalName
@@ -480,8 +586,10 @@ function AsciiArt {
         }
     } # end of main loop
 
-    # Gracefully disconnect from Exchange Online
-    Disconnect-ExchangeOnline -Confirm:$false
+# Gracefully disconnect from Exchange Online
+Disconnect-ExchangeOnline -Confirm:$false
+}
+
 }
 
 #   Export the function as a module
