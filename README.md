@@ -47,6 +47,27 @@ To use the Check-MailboxCompromise function, you need to provide the Exchange On
 
 `invoke-mailboxcheck -ExchangeAdmin "admin@example.com"`
 
+###output
+=====================================
+User: user@example.com
+Mailbox 1 of 1
+=====================================
+  - Has 1 rule(s):
+    - Rule Name: Forward To example Enabled: True, Priority: 1, Action: 
+  - Has 1 forwarding rule(s).
+    - Rule Name: Forward To example
+      - Forward To: 
+  - No suspicious logins in the past 7 days.
+  - No password changes found in the specified date range.
+  - Has 1 delegate(s) with Full Access.
+    - Rights: FullAccess, Identity: _IT (DUO/Sophos/Acronis/DMARC), User: user@example.com
+  - No mailbox-level forwarding.
+  - No recent audit log entries.
+  - Has 2 custom permission(s) set.
+    - User: NT AUTHORITY\SELF, Access Rights: FullAccess, ReadPermission
+    - User: NT AUTHORITY\SELF, Access Rights: FullAccess, ExternalAccount, ReadPermission
+  - Auto-reply is disabled.
+
 ## Quick Run Example
 
 `invoke-mailboxchecke -ExchangeAdmin "admin@example.com" -QuickRun`
