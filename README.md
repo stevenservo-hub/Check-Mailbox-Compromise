@@ -1,9 +1,9 @@
-# MailboxComprimise Module
+# MailboxCompromise Module
 
 ### Synopsis of MailboxCompromise Tool
  
 #### Overview
-The `MailboxCompromise` tool is a PowerShell module designed to help administrators manage and secure Exchange Online mailboxes. It provides functionalities to check mailboxes for suspicious activities, reset user passwords, and revoke user sessions. The tool can be run with various parameters to customize its behavior, making it flexible for different administrative needs.
+The `MailboxCompromise` tool is a PowerShell module designed to help administrators manage and secure Exchange Online mailboxes. It provides functionalities to check mailboxes for suspicious activities, reset user passwords, and revoke user sessions. As well as content and email searches to find a spreading compromised email. The tool can be run with various parameters to customize its behavior, making it flexible for different administrative needs. By default the tool will run a recursive search, going through all emails within the environment, this can be flagged to target indvidual users.
  
 #### Features
  
