@@ -155,7 +155,7 @@ function Invoke-MailboxCheck {
     catch {
         write-output "an error occurred while attempting to connect to Exchange Online: $_"
     }
-        finally {
+        finally { # This will ensure if you use the email serach flag, it will not continue to the main loop. This used accross all functions meant to run independent of the main loop.
             Disconnect-ExchangeOnline -Confirm:$false
             exit
         }
@@ -163,7 +163,7 @@ function Invoke-MailboxCheck {
     function reset-password {   
     param (
         [string] $user,
-        [string] $asciiart
+        [switch] $asciiart
     )
     
     AsciiArt
@@ -205,7 +205,7 @@ function Invoke-MailboxCheck {
     catch {
         write-output "an error occurred while attempting to connect to Azure Online: $_"
     }
-        finally {
+        finally { 
             Disconnect-AzureAD -Confirm:$false
             exit
         }
@@ -214,7 +214,7 @@ function Invoke-MailboxCheck {
         param(
             [string]$Admin,
             [string]$user,
-            [string]$AsciiArt
+            [switch]$AsciiArt
         )
 
         AsciiArt
@@ -255,19 +255,19 @@ function Invoke-MailboxCheck {
             
         } catch {
         write-output "an error occurred while attempting to connect to Exchange Online: $_"
-        } finally {
+        } finally { # This will ensure if you use the email serach flag, it will not continue to the main loop.
                 Disconnect-ExchangeOnline -Confirm:$false
                 exit
             }
         
     }
-
+   
     function EmailSearch {
 
         param (
             [string] $UniqUser,
             [string] $EmailSearch,
-            [string] $AsciiArt
+            [switch] $AsciiArt
         )
         Try {
             Write-Output "Searching for emails received from and responded to $EmailSearch..."
@@ -387,7 +387,7 @@ function Invoke-MailboxCheck {
         Exit
     }
 
-    # Get mailboxes
+    # Get mailboxes. This is used to flag an individual mailbox if the user parameter is used.
     try {
         if ($user) {
             $mailboxes = Get-Mailbox -Identity $user
@@ -410,7 +410,7 @@ function Invoke-MailboxCheck {
         Write-Output "====================================="
         
         write-log -Message "User: $($mailbox.UserPrincipalName) Mailbox $mailboxIndex of $mailboxCount"
-        
+        # increment mailbox index
         $mailboxIndex++
         
         # Inbox Rules
