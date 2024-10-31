@@ -1,3 +1,155 @@
+# Function definitions
+
+function Reset-Password {   
+    param (
+        [string] $user,
+        [string] $Admin,
+        [switch] $asciiart
+    )
+    
+    AsciiArt
+
+    try {
+                
+        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+    
+        $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
+        
+        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
+        
+        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
+        Write-Output "Password for user $user has been reset to $newPassword"
+        # Password will not be logged to the log file to ensure security.
+        Write-Log "Password for user $user has been reset successfully."
+    } catch {
+        Write-Log "Failed to reset password for user $user. Error: $_"
+        Write-Output "Failed to reset password for user $user. Error: $_"
+    }
+}
+
+function Revoke-Session {
+    param(
+        [string]$Admin,
+        [string]$user,
+        [switch]$AsciiArt
+    )
+
+    AsciiArt
+
+    try {
+        $AdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
+
+        Connect-AzureAD -Credential $AdminCredential
+
+        # Revoke the user's refresh tokens
+        $getuser = Get-AzureADUser -UserPrincipalName $user
+        Revoke-AzureADUserAllRefreshToken -ObjectId $getuser.ObjectId
+
+        Write-Output "Session for user $user has been revoked successfully."
+    } catch {
+        Write-Log "Failed to revoke session for user $user. Error: $_"
+        Write-Output "Failed to revoke session for user $user. Error: $_"
+    }
+}
+
+function EmailSearch {
+    param (
+        [string] $UniqUser,
+        [string] $EmailSearch,
+        [switch] $AsciiArt
+    )
+    Try {
+        Write-Output "Searching for emails received from and responded to $EmailSearch..."
+
+        $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
+        Write-Output "Received emails from $EmailSearch : $($receivedEmails.ResultItems.Count)"
+
+        $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
+        Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
+    } catch {
+        Write-Output "An error occurred while searching for emails: $_"
+    }
+}
+
+function ContentSearch {
+    param (
+        [string] $UniqUser,
+        [string] $ContentSearch,
+        [datetime] $StartDate,
+        [datetime] $EndDate,
+        [switch] $AsciiArt
+    )
+
+    AsciiArt
+
+    try {
+        Write-Output "Searching for emails containing $ContentSearch..."
+
+        # Build the search query
+        $searchQuery = "Content:$ContentSearch"
+        if ($StartDate) {
+            $searchQuery += " AND Received>=$($StartDate.ToString('yyyy-MM-dd'))"
+        }
+        if ($EndDate) {
+            $searchQuery += " AND Received<=$($EndDate.ToString('yyyy-MM-dd'))"
+        }
+
+        $contentSearchResults = Search-Mailbox -Identity $UniqUser -SearchQuery $searchQuery -LogOnly -LogLevel Full
+        Write-Output "Emails containing $ContentSearch : $($contentSearchResults.ResultItems.Count)"
+        foreach ($result in $contentSearchResults.ResultItems) {
+            Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+            Write-Log -Message "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
+        }
+    }
+    catch {
+        Write-Output "An error occurred while searching for emails: $_"
+    }
+}
+
+function Write-Log {
+    param (
+        [string]$Message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "$timestamp - $Message"
+    Add-Content -Path $global:LogFilePath -Value $logMessage
+}
+
+function AsciiArt {
+    write-output "                                                                "                 
+    write-output "                                                                "             
+    write-output "        :-----------------:.            :++++++++++++++++++:    "        
+    write-output "        :--------------------:         :+++++++++++++++++++++:  "         
+    write-output "       .-----------------------:     .+++++++++++++++++++++++-  "         
+    write-output "        -------------------------: .+++++++++++++++++++++++++-  "         
+    write-output "        ---------------------------++++++++++++++++++++++++++-  "         
+    write-output "       .---------------------------++++++++++++++++++++++++++-  "         
+    write-output ":###############################=--++++++++++++++++++++++++++-  "         
+    write-output "*###############################*--++++++++++++++++++++++++++-  "         
+    write-output "*###############################*--++++++++++++++++++++++++++-  "         
+    write-output "*##########*********############*--++++++++++++++++++++++++++-  "         
+    write-output "##########.         .###########*--++++++++++++++++++++++++++   "         
+    write-output "##########.  :*******###########*-=++++++++++++++++++++++++.    "         
+    write-output "##########.  -##################*=+++++++++++++++++++++++:      "         
+    write-output "##########.  .++++++#############++++++++++++++++++++++:        "         
+    write-output "##########.         =##########%#++++++**#############-         "         
+    write-output "##########.  -#################%#+++*###################.       "         
+    write-output "##########.  -#################%#++*#####################*.     "         
+    write-output "##########.   .......##########%#++########################*    "         
+    write-output "##########.          ##########%#++##########################:  "         
+    write-output "###############################%#++##########################+  "         
+    write-output "###############################%#++##########################+  "         
+    write-output "*##############################%#++##########################+  "         
+    write-output " +##########################%%%%#++##########################+  "         
+    write-output "       .%%%%%%%%%%%%%%%%%%%%%%%#*++##########################+  "         
+    write-output "       .***********************++++##########################+  "         
+    write-output "       .++++++++++++++++++++++++=.  -########################+  "         
+    write-output "       .+++++++++++++++++++++++.      +######################+  "         
+    write-output "        =++++++++++++++++++++:          *####################:  "         
+    write-output "         .-+++++++++++++++=.              =################-    "         
+}
+
+# Main function
 function Invoke-MailboxCheck {
     <#
     .SYNOPSIS
@@ -95,150 +247,54 @@ function Invoke-MailboxCheck {
         $global:LogFilePath = "$($home)\MailboxCheck.log"
     }
 
-    # functions
-
-    # Toolbox functions
-    
-    # TODO: Add additional toolbox functions
-    function AsciiArt {
-        write-output "                                                                "                 
-        write-output "                                                                "             
-        write-output "        :-----------------:.            :++++++++++++++++++:    "        
-        write-output "        :--------------------:         :+++++++++++++++++++++:  "         
-        write-output "       .-----------------------:     .+++++++++++++++++++++++-  "         
-        write-output "        -------------------------: .+++++++++++++++++++++++++-  "         
-        write-output "        ---------------------------++++++++++++++++++++++++++-  "         
-        write-output "       .---------------------------++++++++++++++++++++++++++-  "         
-        write-output ":###############################=--++++++++++++++++++++++++++-  "         
-        write-output "*###############################*--++++++++++++++++++++++++++-  "         
-        write-output "*###############################*--++++++++++++++++++++++++++-  "         
-        write-output "*##########*********############*--++++++++++++++++++++++++++-  "         
-        write-output "##########.         .###########*--++++++++++++++++++++++++++   "         
-        write-output "##########.  :*******###########*-=++++++++++++++++++++++++.    "         
-        write-output "##########.  -##################*=+++++++++++++++++++++++:      "         
-        write-output "##########.  .++++++#############++++++++++++++++++++++:        "         
-        write-output "##########.         =##########%#++++++**#############-         "         
-        write-output "##########.  -#################%#+++*###################.       "         
-        write-output "##########.  -#################%#++*#####################*.     "         
-        write-output "##########.   .......##########%#++########################*    "         
-        write-output "##########.          ##########%#++##########################:  "         
-        write-output "###############################%#++##########################+  "         
-        write-output "###############################%#++##########################+  "         
-        write-output "*##############################%#++##########################+  "         
-        write-output " +##########################%%%%#++##########################+  "         
-        write-output "       .%%%%%%%%%%%%%%%%%%%%%%%#*++##########################+  "         
-        write-output "       .***********************++++##########################+  "         
-        write-output "       .++++++++++++++++++++++++=.  -########################+  "         
-        write-output "       .+++++++++++++++++++++++.      +######################+  "         
-        write-output "        =++++++++++++++++++++:          *####################:  "         
-        write-output "         .-+++++++++++++++=.              =################-    "         
-    }
-
     #reset passwsord check
     if ($passReset) {
         try {
-        if (-not $Admin) {
-            $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
-        }
-    
-        if (-not $user) {
-            $user = Read-Host "Please enter the unique user"
-        }
-    
-        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
-    
-        # Call the reset-password function with the provided or prompted UniqUser
-        reset-password -uniquser $user
+            if (-not $Admin) {
+                $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+            }
         
-    }
+            if (-not $user) {
+                $user = Read-Host "Please enter the unique user"
+            }
         
-    catch {
-        write-output "an error occurred while attempting to connect to Exchange Online: $_"
-    }
-        finally { # This will ensure if you use the email serach flag, it will not continue to the main loop. This used accross all functions meant to run independent of the main loop.
+            Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+        
+            # Call the reset-password function with the provided or prompted UniqUser
+            Reset-Password -user $user -Admin $Admin
+            
+        } catch {
+            write-output "an error occurred while attempting to connect to Exchange Online: $_"
+        } finally { 
             Disconnect-ExchangeOnline -Confirm:$false
             exit
         }
     }
-    function reset-password {   
-    param (
-        [string] $user,
-        [switch] $asciiart
-    )
-    
-    AsciiArt
 
-    try {
-        
-        $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
-        
-        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
-        
-        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
-        Write-Output "Password for user $user has been reset to $newPassword"
-        # Password will not be logged to the log file to ensure security.
-        Write-Log "Password for user $user has been reset successfully."
-    } catch {
-        Write-Log "Failed to reset password for user $user. Error: $_"
-        Write-Output "Failed to reset password for user $user. Error: $_"
-    }
-    }
-   
     if ($revokeSession) {
-        
         try {
-        if (-not $Admin) {
-            $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
-        }
-    
-        if (-not $user) {
-            $user = Read-Host "Please enter the unique user"
-        }
-    
-        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
-    
-        # Call the reset-password function with the provided or prompted UniqUser
-        reset-password -uniquser $user
+            if (-not $Admin) {
+                $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
+            }
         
-    }
+            if (-not $user) {
+                $user = Read-Host "Please enter the unique user"
+            }
         
-    catch {
-        write-output "an error occurred while attempting to connect to Azure Online: $_"
-    }
-        finally { 
+            Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
+        
+            # Call the revoke-session function with the provided or prompted UniqUser
+            Revoke-Session -user $user -Admin $Admin
+            
+        } catch {
+            write-output "an error occurred while attempting to connect to Azure Online: $_"
+        } finally { 
             Disconnect-AzureAD -Confirm:$false
             exit
         }
-   }
-    function Revoke-Session {
-        param(
-            [string]$Admin,
-            [string]$user,
-            [switch]$AsciiArt
-        )
-
-        AsciiArt
-
-            try {
-                $AdminCredential = Get-Credential -Message "Enter Exchange Admin credentials"
-        
-                Connect-AzureAD -Credential $AdminCredential
-        
-                # Revoke the user's refresh tokens
-                $getuser = Get-AzureADUser -UserPrincipalName $user
-                Revoke-AzureADUserAllRefreshToken -ObjectId $getuser.ObjectId
-        
-                Write-Output "Session for user $user has been revoked successfully."
-            } catch {
-                Write-Log "Failed to revoke session for user $user. Error: $_"
-                Write-Output "Failed to revoke session for user $user. Error: $_"
-            }
-        }
-
-
+    }
 
     if ($EmailSearch) {
-
         try {
             if (-not $Admin) {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
@@ -250,42 +306,18 @@ function Invoke-MailboxCheck {
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
-            # Call the reset-password function with the provided or prompted UniqUser
-            EmailSearch -uniquser $user
+            # Call the email-search function with the provided or prompted UniqUser
+            EmailSearch -UniqUser $user -EmailSearch $EmailSearch
             
         } catch {
-        write-output "an error occurred while attempting to connect to Exchange Online: $_"
-        } finally { # This will ensure if you use the email serach flag, it will not continue to the main loop.
-                Disconnect-ExchangeOnline -Confirm:$false
-                exit
-            }
-        
-    }
-   
-    function EmailSearch {
-
-        param (
-            [string] $UniqUser,
-            [string] $EmailSearch,
-            [switch] $AsciiArt
-        )
-        Try {
-            Write-Output "Searching for emails received from and responded to $EmailSearch..."
-    
-            $receivedEmails = Search-Mailbox -Identity $User -SearchQuery "from:$EmailSearch" -LogOnly -LogLevel Full
-            Write-Output "Received emails from $EmailSearch : $($receivedEmails.ResultItems.Count)"
-    
-            $respondedEmails = Search-Mailbox -Identity $User -SearchQuery "to:$EmailSearch" -LogOnly -LogLevel Full
-            Write-Output "Responded emails to $EmailSearch : $($respondedEmails.ResultItems.Count)"
-        } catch {
-            Write-Output "An error occurred while searching for emails: $_"
+            write-output "an error occurred while attempting to connect to Exchange Online: $_"
+        } finally { 
+            Disconnect-ExchangeOnline -Confirm:$false
+            exit
         }
     }
-
-    # TODO: Add regex validation for StartDate and EndDate
 
     if ($ContentSearch) {
-
         try {
             if (-not $Admin) {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
@@ -297,73 +329,17 @@ function Invoke-MailboxCheck {
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
-            # Call the reset-password function with the provided or prompted UniqUser
-            ContentSearch -uniquser $user
+            # Call the content-search function with the provided or prompted UniqUser
+            ContentSearch -UniqUser $user -ContentSearch $ContentSearch -StartDate $StartDate -EndDate $EndDate
             
         } catch {
-        write-output "an error occurred while attempting to connect to Exchange Online: $_"
-        } finally {
-                Disconnect-ExchangeOnline -Confirm:$false
-                exit
-            }
-    }
-    function ContentSearch {
-        param (
-            [string] $UniqUser,
-            [string] $ContentSearch,
-            [datetime] $StartDate,
-            [datetime] $EndDate,
-            [switch] $AsciiArt
-        )
-
-        AsciiArt
-
-        try {
-            Write-Output "Searching for emails containing $ContentSearch..."
-    
-            # Build the search query
-            $searchQuery = "Content:$ContentSearch"
-            if ($StartDate) {
-                $searchQuery += " AND Received>=$($StartDate.ToString('yyyy-MM-dd'))"
-            }
-            if ($EndDate) {
-                $searchQuery += " AND Received<=$($EndDate.ToString('yyyy-MM-dd'))"
-            }
-    
-            $contentSearchResults = Search-Mailbox -Identity $UniqUser -SearchQuery $searchQuery -LogOnly -LogLevel Full
-            Write-Output "Emails containing $ContentSearch : $($contentSearchResults.ResultItems.Count)"
-            foreach ($result in $contentSearchResults.ResultItems) {
-                Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
-                Write-Log -Message "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
-            }
+            write-output "an error occurred while attempting to connect to Exchange Online: $_"
+        } finally { 
+            Disconnect-ExchangeOnline -Confirm:$false
+            exit
         }
-        catch {
-            Write-Output "An error occurred while searching for emails: $_"
-        }
-
-    # Function to log messages  
-    function Write-Log {
-    param (
-        [string]$Message
-    )
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logMessage = "$timestamp - $Message"
-    Add-Content -Path $global:LogFilePath -Value $logMessage
     }
 
-    AsciiArt
-
-     # Check if ExchangeOnlineManagement module is installed
-     if (-not (Get-Module -ListAvailable -Name ExchangeOnlineManagement)) {
-         try {
-             Install-Module -Name ExchangeOnlineManagement -Force -ErrorAction Stop
-             Write-Output "ExchangeOnlineManagement module installed successfully."
-         } catch {
-             Write-Output "Failed to install ExchangeOnlineManagement module. Error: $_"
-             Exit
-         }
-     }
-   
     # Error Handling and Retry Logic for Connection
     $retryCount = 3
     $retryDelay = 5 # seconds
@@ -583,7 +559,5 @@ function Invoke-MailboxCheck {
 Disconnect-ExchangeOnline -Confirm:$false
 }
 
-}
-
-#   Export the function as a module
+# Export the function as a module
 Export-ModuleMember -Function Invoke-MailboxCheck
