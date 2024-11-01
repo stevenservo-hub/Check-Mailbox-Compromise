@@ -376,7 +376,7 @@ function Invoke-MailboxCheck {
     
     $mailboxCount = $mailboxes.Count
     $mailboxIndex = 1
-
+    AsciiArt
     #main loop
     foreach ($mailbox in $mailboxes) {
         
