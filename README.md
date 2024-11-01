@@ -47,7 +47,7 @@ To use the Check-MailboxCompromise function, you need to provide the Exchange On
 
 `invoke-mailboxcheck -ExchangeAdmin "admin@example.com"`
 
-###output
+### output
 =====================================
 User: user@example.com
 Mailbox 1 of 1
