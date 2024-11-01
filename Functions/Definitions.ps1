@@ -52,7 +52,7 @@ function Revoke-Session {
 
 function EmailSearch {
     param (
-        [string] $UniqUser,
+        [string] $User,
         [string] $EmailSearch,
         [switch] $AsciiArt
     )
@@ -71,7 +71,7 @@ function EmailSearch {
 
 function ContentSearch {
     param (
-        [string] $UniqUser,
+        [string] $User,
         [string] $ContentSearch,
         [datetime] $StartDate,
         [datetime] $EndDate,
@@ -92,7 +92,7 @@ function ContentSearch {
             $searchQuery += " AND Received<=$($EndDate.ToString('yyyy-MM-dd'))"
         }
 
-        $contentSearchResults = Search-Mailbox -Identity $UniqUser -SearchQuery $searchQuery -LogOnly -LogLevel Full
+        $contentSearchResults = Search-Mailbox -Identity $User -SearchQuery $searchQuery -LogOnly -LogLevel Full
         Write-Output "Emails containing $ContentSearch : $($contentSearchResults.ResultItems.Count)"
         foreach ($result in $contentSearchResults.ResultItems) {
             Write-Output "Subject: $($result.Subject), Received: $($result.ReceivedTime)"
