@@ -49,10 +49,9 @@ To use the Check-MailboxCompromise function, you need to provide the Exchange On
 
 ### output
 
-=====================================
+
 User: user@example.com
 Mailbox 1 of 1
-=====================================
   
   - Has 1 rule(s):
     - Rule Name: Forward To example Enabled: True, Priority: 1, Action: 
