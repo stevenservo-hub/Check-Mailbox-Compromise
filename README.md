@@ -48,10 +48,12 @@ To use the Check-MailboxCompromise function, you need to provide the Exchange On
 `invoke-mailboxcheck -ExchangeAdmin "admin@example.com"`
 
 ### output
+
 =====================================
 User: user@example.com
 Mailbox 1 of 1
 =====================================
+  
   - Has 1 rule(s):
     - Rule Name: Forward To example Enabled: True, Priority: 1, Action: 
   - Has 1 forwarding rule(s).
