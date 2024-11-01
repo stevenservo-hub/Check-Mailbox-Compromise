@@ -125,15 +125,7 @@ function Invoke-MailboxCheck {
         [datetime]$EndDate
     )
     
-    if ($path){
-        $global:LogFilePath = $path
-    } else {
-        $global:LogFilePath = "$($home)\MailboxCheck.log"
-    }
-
-    #reset passwsord check
-    if ($passReset) {
-        try {
+   try {
             if (-not $Admin) {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
             }

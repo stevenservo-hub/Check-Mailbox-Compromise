@@ -11,8 +11,6 @@ function Reset-Password {
 
     try {
                 
-        Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
-    
         $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
         
         Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
@@ -107,6 +105,14 @@ function ContentSearch {
 }
 
 function Write-Log {
+    [string]$path
+
+    if ($path){
+        $global:LogFilePath = $path
+    } else {
+        $global:LogFilePath = "$($home)\MailboxCheck.log"
+    }
+
     param (
         [string]$Message
     )
