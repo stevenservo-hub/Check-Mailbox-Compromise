@@ -145,7 +145,7 @@ function Invoke-MailboxCheck {
             Disconnect-ExchangeOnline -Confirm:$false
             exit
         }
-    }
+    
 
     if ($revokeSession) {
         try {
