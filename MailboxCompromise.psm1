@@ -416,17 +416,28 @@ function Invoke-MailboxCheck {
             # Auto-Reply Settings
             try {
                 $autoReplyConfig = Get-MailboxAutoReplyConfiguration -Identity $mailbox.UserPrincipalName
-
+            
                 if ($autoReplyConfig.AutoReplyState -ne "Disabled") {
                     Write-Output "  - Auto-reply is enabled."
-                    write-log -Message "Auto-reply is enabled."
+                    Write-Log -Message "Auto-reply is enabled."
+            
+                    if ($Verbose) {
+                        Write-Output "    - Internal Message: $($autoReplyConfig.InternalMessage)"
+                        Write-Output "    - External Message: $($autoReplyConfig.ExternalMessage)"
+                        Write-Output "    - Start Time: $($autoReplyConfig.StartTime)"
+                        Write-Output "    - End Time: $($autoReplyConfig.EndTime)"
+                        Write-Log -Message "Internal Message: $($autoReplyConfig.InternalMessage)"
+                        Write-Log -Message "External Message: $($autoReplyConfig.ExternalMessage)"
+                        Write-Log -Message "Start Time: $($autoReplyConfig.StartTime)"
+                        Write-Log -Message "End Time: $($autoReplyConfig.EndTime)"
+                    }
                 } else {
                     Write-Output "  - Auto-reply is disabled."
                     Write-Log -Message "Auto-reply is disabled."
                 }
             } catch {
                 Write-Output "  - Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
-                write-log -Message "Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
+                Write-Log -Message "Error retrieving auto-reply settings for $($mailbox.UserPrincipalName)."
             }
         }
     } # end of main loop
