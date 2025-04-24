@@ -7,6 +7,11 @@ function Reset-Password {
         [switch] $asciiart
     )
     
+        $allowedParameters = @('user', 'Admin', 'asciiart')
+        $invalidParameters = $PSBoundParameters.Keys | Where-Object { $_ -notin $allowedParameters }
+        if ($invalidParameters) {
+            throw "The Reset-Password function is meant to be run by itself, except for the Admin parameter. Invalid parameters: $($invalidParameters -join ', ')"
+        }    
     AsciiArt
 
     try {
@@ -32,6 +37,11 @@ function Revoke-Session {
         [switch]$AsciiArt
     )
 
+    $allowedParameters = @('Admin', 'user', 'AsciiArt')
+    $invalidParameters = $PSBoundParameters.Keys | Where-Object { $_ -notin $allowedParameters }
+    if ($invalidParameters) {
+        throw "The Revoke-Session function is meant to be run by itself, except for the Admin parameter. Invalid parameters: $($invalidParameters -join ', ')"
+    }
     AsciiArt
 
     try {
@@ -56,6 +66,12 @@ function EmailSearch {
         [string] $EmailSearch,
         [switch] $AsciiArt
     )
+
+    $allowedParameters = @('User', 'EmailSearch', 'AsciiArt')
+    $invalidParameters = $PSBoundParameters.Keys | Where-Object { $_ -notin $allowedParameters }
+    if ($invalidParameters) {
+        throw "The EmailSearch function is meant to be run by itself, except for the AsciiArt parameter. Invalid parameters: $($invalidParameters -join ', ')"
+    }
     Try {
         Write-Output "Searching for emails received from and responded to $EmailSearch..."
 
@@ -78,6 +94,11 @@ function ContentSearch {
         [switch] $AsciiArt
     )
 
+    $allowedParameters = @('User', 'ContentSearch', 'StartDate', 'EndDate', 'AsciiArt')
+    $invalidParameters = $PSBoundParameters.Keys | Where-Object { $_ -notin $allowedParameters }
+    if ($invalidParameters) {
+        throw "The ContentSearch function is meant o be run with StartDate EndDate and User Invalid parameters: $($invalidParameters -join ', ')"
+    }
     AsciiArt
 
     try {
