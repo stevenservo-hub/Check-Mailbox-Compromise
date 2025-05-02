@@ -18,10 +18,11 @@ function Reset-Password {
                 
         $newPassword = [System.Web.Security.Membership]::GeneratePassword(12, 2)
         
-        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force)
+        Set-Mailbox -Identity $user -Password (ConvertTo-SecureString -String $newPassword -AsPlainText -Force) -Force
+        $newPassword | Set-Clipboard
         
-        # Write the password reset. Exchange online is a secure session using HTTPS, so we don't need to worry about plaintext passwords.
-        Write-Output "Password for user $user has been reset to $newPassword"
+        # Write the password reset. Exchange online is a secure session using HTTPS, I have got complaints about printing password to screen, so now ill just copy it to clipboard.
+        Write-Output "Password for user $user has been reset and copied to clipboard."
         # Password will not be logged to the log file to ensure security.
         Write-Log "Password for user $user has been reset successfully."
     } catch {

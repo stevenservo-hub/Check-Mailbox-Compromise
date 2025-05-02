@@ -1,5 +1,13 @@
-. .\Functions\definitions.ps1 # Import the function definitions
+# Ensure dependencies are installed by invoking the InstallDependencies script
+. "$PSScriptRoot\Functions\InstallDependencies.ps1"
 
+# Dot-source the Definitions.ps1 file to load its functions
+. "$PSScriptRoot\Functions\Definitions.ps1"
+
+# Dot-source the InteractiveMailboxCheck.ps1 file to load the TUI function
+. "$PSScriptRoot\Functions\InteractiveMailboxCheck.ps1"
+
+# Define the main function
 function Invoke-MailboxCheck {
     <#
     .SYNOPSIS
@@ -80,64 +88,71 @@ function Invoke-MailboxCheck {
     function AsciiArt {
         write-output "                                                                "                 
         write-output "                                                                "             
-        write-output "        :-----------------:.            :++++++++++++++++++:    "        
-        write-output "        :--------------------:         :+++++++++++++++++++++:  "         
-        write-output "       .-----------------------:     .+++++++++++++++++++++++-  "         
-        write-output "        -------------------------: .+++++++++++++++++++++++++-  "         
-        write-output "        ---------------------------++++++++++++++++++++++++++-  "         
-        write-output "       .---------------------------++++++++++++++++++++++++++-  "         
-        write-output ":###############################=--++++++++++++++++++++++++++-  "         
-        write-output "*###############################*--++++++++++++++++++++++++++-  "         
-        write-output "*###############################*--++++++++++++++++++++++++++-  "         
-        write-output "*##########*********############*--++++++++++++++++++++++++++-  "         
-        write-output "##########.         .###########*--++++++++++++++++++++++++++   "         
-        write-output "##########.  :*******###########*-=++++++++++++++++++++++++.    "         
-        write-output "##########.  -##################*=+++++++++++++++++++++++:      "         
-        write-output "##########.  .++++++#############++++++++++++++++++++++:        "         
-        write-output "##########.         =##########%#++++++**#############-         "         
-        write-output "##########.  -#################%#+++*###################.       "         
-        write-output "##########.  -#################%#++*#####################*.     "         
-        write-output "##########.   .......##########%#++########################*    "         
-        write-output "##########.          ##########%#++##########################:  "         
-        write-output "###############################%#++##########################+  "         
-        write-output "###############################%#++##########################+  "         
-        write-output "*##############################%#++##########################+  "         
-        write-output " +##########################%%%%#++##########################+  "         
-        write-output "       .%%%%%%%%%%%%%%%%%%%%%%%#*++##########################+  "         
-        write-output "       .***********************++++##########################+  "         
-        write-output "       .++++++++++++++++++++++++=.  -########################+  "         
-        write-output "       .+++++++++++++++++++++++.      +######################+  "         
-        write-output "        =++++++++++++++++++++:          *####################:  "         
-        write-output "         .-+++++++++++++++=.              =################-    "         
+        write-output "        :-----------------:.            :++++++++++++++++++:    "         
+        write-output "        :--------------------:         :+++++++++++++++++++++:  "          
+        write-output "       .-----------------------:     .+++++++++++++++++++++++-  "          
+        write-output "        -------------------------: .+++++++++++++++++++++++++-  "          
+        write-output "        ---------------------------++++++++++++++++++++++++++-  "          
+        write-output "       .---------------------------++++++++++++++++++++++++++-  "          
+        write-output ":###############################=--++++++++++++++++++++++++++-  "          
+        write-output "*###############################*--++++++++++++++++++++++++++-  "          
+        write-output "*###############################*--++++++++++++++++++++++++++-  "          
+        write-output "*##########*********############*--++++++++++++++++++++++++++-  "          
+        write-output "##########.         .###########*--++++++++++++++++++++++++++   "          
+        write-output "##########.  :*******###########*-=++++++++++++++++++++++++.    "          
+        write-output "##########.  -##################*=+++++++++++++++++++++++:      "          
+        write-output "##########.  .++++++#############++++++++++++++++++++++:        "          
+        write-output "##########.         =##########%#++++++**#############-         "          
+        write-output "##########.  -#################%#+++*###################.       "          
+        write-output "##########.  -#################%#++*#####################*.     "          
+        write-output "##########.   .......##########%#++########################*    "          
+        write-output "##########.          ##########%#++##########################:  "          
+        write-output "###############################%#++##########################+  "          
+        write-output "###############################%#++##########################+  "          
+        write-output "*##############################%#++##########################+  "          
+        write-output " +##########################%%%%#++##########################+  "          
+        write-output "       .%%%%%%%%%%%%%%%%%%%%%%%#*++##########################+  "          
+        write-output "       .***********************++++##########################+  "          
+        write-output "       .++++++++++++++++++++++++=.  -########################+  "          
+        write-output "       .+++++++++++++++++++++++.      +######################+  "          
+        write-output "        =++++++++++++++++++++:          *####################:  "          
+        write-output "         .-+++++++++++++++=.              =################-    "          
     }
     
     param (
         [string]$Admin,
         [switch]$QuickRun,
         [switch]$Verbose,
-        [string]$user,
-        [string]$path,
+        [string]$User,
+        [string]$Path,
         [switch]$PassReset,
-        [switch]$revokesession,
+        [switch]$RevokeSession,
         [string]$EmailSearch,
         [string]$ContentSearch,
         [datetime]$StartDate,
         [datetime]$EndDate
     )
+
+    # Launch the TUI if no parameters are provided
+    if ($PSBoundParameters.Count -eq 0) {
+        Write-Output "No parameters provided. Launching interactive mode..."
+        Show-MailboxCheckTUI
+        return
+    }
     
-   try {
+    try {
             if (-not $Admin) {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
             }
         
-            if (-not $user) {
-                $user = Read-Host "Please enter the unique user"
+            if (-not $User) {
+                $User = Read-Host "Please enter the unique user"
             }
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
             # Call the reset-password function with the provided or prompted UniqUser
-            Reset-Password -user $user -Admin $Admin
+            Reset-Password -User $User -Admin $Admin
             
         } catch {
             write-output "an error occurred while attempting to connect to Exchange Online: $_"
@@ -147,26 +162,25 @@ function Invoke-MailboxCheck {
         }
     
 
-    if ($revokeSession) {
+    if ($RevokeSession) {
         try {
             if (-not $Admin) {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
             }
         
-            if (-not $user) {
-                $user = Read-Host "Please enter the unique user"
+            if (-not $User) {
+                $User = Read-Host "Please enter the unique user"
             }
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
             # Call the revoke-session function with the provided or prompted UniqUser
-            Revoke-Session -user $user -Admin $Admin
+            Revoke-Session -User $User -Admin $Admin
             
         } catch {
             write-output "an error occurred while attempting to connect to Azure Online: $_"
         } finally { 
             Disconnect-AzureAD -Confirm:$false
-            exit
         }
     }
 
@@ -176,14 +190,14 @@ function Invoke-MailboxCheck {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
             }
         
-            if (-not $user) {
-                $user = Read-Host "Please enter the unique user"
+            if (-not $User) {
+                $User = Read-Host "Please enter the unique user"
             }
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
             # Call the email-search function with the provided or prompted UniqUser
-            EmailSearch -UniqUser $user -EmailSearch $EmailSearch
+            EmailSearch -UniqUser $User -EmailSearch $EmailSearch
             
         } catch {
             write-output "an error occurred while attempting to connect to Exchange Online: $_"
@@ -199,14 +213,14 @@ function Invoke-MailboxCheck {
                 $Admin = Read-Host "Please enter the Exchange Admin UserPrincipalName"
             }
         
-            if (-not $user) {
-                $user = Read-Host "Please enter the unique user"
+            if (-not $User) {
+                $User = Read-Host "Please enter the unique user"
             }
         
             Connect-ExchangeOnline -UserPrincipalName $Admin -WarningAction SilentlyContinue
         
             # Call the content-search function with the provided or prompted UniqUser
-            ContentSearch -UniqUser $user -ContentSearch $ContentSearch -StartDate $StartDate -EndDate $EndDate
+            ContentSearch -UniqUser $User -ContentSearch $ContentSearch -StartDate $StartDate -EndDate $EndDate
             
         } catch {
             write-output "an error occurred while attempting to connect to Exchange Online: $_"
@@ -241,8 +255,8 @@ function Invoke-MailboxCheck {
 
     # Get mailboxes. This is used to flag an individual mailbox if the user parameter is used.
     try {
-        if ($user) {
-            $mailboxes = Get-Mailbox -Identity $user
+        if ($User) {
+            $mailboxes = Get-Mailbox -Identity $User
         } else {
             $mailboxes = Get-Mailbox -ResultSize Unlimited
         }
@@ -446,5 +460,5 @@ function Invoke-MailboxCheck {
 Disconnect-ExchangeOnline -Confirm:$false
 }
 
-# Export the function as a module
+# Export the main function
 Export-ModuleMember -Function Invoke-MailboxCheck
