@@ -1,11 +1,5 @@
-# Ensure dependencies are installed by invoking the InstallDependencies script
-. "$PSScriptRoot\Functions\InstallDependencies.ps1"
-
-# Dot-source the Definitions.ps1 file to load its functions
-. "$PSScriptRoot\Functions\Definitions.ps1"
-
-# Dot-source the InteractiveMailboxCheck.ps1 file to load the TUI function
-. "$PSScriptRoot\Functions\InteractiveMailboxCheck.ps1"
+# Import all function scripts
+Get-ChildItem -Path $PSScriptRoot\Functions -Filter *.ps1 | ForEach-Object { . $_.FullName }
 
 # Define the main function
 function Invoke-MailboxCheck {
