@@ -127,11 +127,13 @@ function Invoke-MailboxCheck {
         [datetime]$EndDate
     )
 
-    # Launch the TUI if no parameters are provided
+    # Launch the TUI only if no parameters are provided
     if ($PSBoundParameters.Count -eq 0) {
         Write-Output "No parameters provided. Launching interactive mode..."
         Show-MailboxCheckTUI
         return
+    } else {
+        Write-Output "Parameters detected. Running in CLI mode..."
     }
     
     try {
