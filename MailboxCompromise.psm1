@@ -497,25 +497,32 @@ function Invoke-MailboxCheck {
                 write-log -Message "Error retrieving mailbox-level forwarding for $($mailbox.UserPrincipalName)."
             }
 
-            # Audit Logs
-            try {
-                $auditLogs = Search-MailboxAuditLog -Mailboxes $mailbox.UserPrincipalName -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
+# Audit Logs
+try {
+    $auditLogs = Search-UnifiedAuditLog `
+        -StartDate (Get-Date).AddDays(-7) `
+        -EndDate (Get-Date) `
+        -UserIds $mailbox.UserPrincipalName `
+        -RecordType ExchangeItem `
+        -ResultSize 1000
 
-                if ($auditLogs.Count -gt 0) {
-                    Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
-                    if ($Verbose) {
-                        foreach ($log in $auditLogs) {
-                            Write-Output "    - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
-                            write-log -Message "Log - Operation: $($log.Operation), Date: $($log.CreationDate), User: $($log.UserId)"
-                        }
-                    }
-                } else {
-                    Write-Output "  - No recent audit log entries."
-                }
-            } catch {
-                Write-Output "  - Error retrieving audit logs for $($mailbox.UserPrincipalName)."
-                Write-Log -Message "Error retrieving audit logs for $($mailbox.UserPrincipalName)."
+    if ($auditLogs.Count -gt 0) {
+        Write-Output "  - Has $($auditLogs.Count) audit log entries in the past 7 days."
+        if ($Verbose) {
+            foreach ($log in $auditLogs) {
+                # AuditData is a JSON string — parse it for Operation and other fields
+                $auditData = $log.AuditData | ConvertFrom-Json
+                Write-Output "    - Operation: $($auditData.Operation), Date: $($log.CreationDate), User: $($log.UserIds)"
+                Write-Log -Message "Log - Operation: $($auditData.Operation), Date: $($log.CreationDate), User: $($log.UserIds)"
             }
+        }
+    } else {
+        Write-Output "  - No recent audit log entries."
+    }
+} catch {
+    Write-Output "  - Error retrieving audit logs for $($mailbox.UserPrincipalName)."
+    Write-Log -Message "Error retrieving audit logs for $($mailbox.UserPrincipalName)."
+}
 
             # Custom Permissions
             try {
