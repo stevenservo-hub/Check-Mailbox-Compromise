@@ -420,24 +420,45 @@ function Invoke-MailboxCheck {
             Write-Output "  - Error retrieving forwarding rules for $($mailbox.UserPrincipalName)."
         }
 
-        # Suspicious Login Activity
-        try {
-            $suspiciousLogins = Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date) -UserIds $mailbox.UserPrincipalName -Operations "UserLoggedIn" | Where-Object { $_.ClientIP -notlike "KnownIPRange" }
-            
-            if ($suspiciousLogins.Count -gt 0) {
-                Write-Output "  - Has $($suspiciousLogins.Count) suspicious login(s) in the past 7 days."
-                foreach ($login in $suspiciousLogins) {
-                    Write-Output "    - IP: $($login.ClientIP), Date: $($login.CreationDate)"
-                    write-log -Message "Logins - IP: $($login.ClientIP), Date: $($login.CreationDate)"
-                }
-            } else {
-                Write-Output "  - No suspicious logins in the past 7 days."
-            }
-        } catch {
-            Write-Output "  - Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
-            write-log -Message "Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
+try {
+    $raw = Search-UnifiedAuditLog `
+        -StartDate (Get-Date).AddDays(-7) `
+        -EndDate (Get-Date) `
+        -UserIds $mailbox.UserPrincipalName `
+        -RecordType AzureActiveDirectoryStsLogon `
+        -ResultSize 5000 `
+        -SessionCommand ReturnLargeSet
+
+    $loginEvents = foreach ($entry in $raw) {
+        $data = $entry.AuditData | ConvertFrom-Json
+        [pscustomobject]@{
+            Date     = $data.CreationTime
+            IP       = $data.ClientIP
+            User     = $data.UserId
+            App      = $data.Application
+            Status   = $data.Status
+            Activity = $data.Operation
         }
-        
+    }
+
+    $suspiciousLogins = $loginEvents | Where-Object {
+        $_.IP -and $_.IP -notmatch '^10\.|^172\.(1[6-9]|2\d|3[0-1])\.|^192\.168\.'
+    }
+
+    if ($suspiciousLogins.Count -gt 0) {
+        Write-Output "  - Has $($suspiciousLogins.Count) suspicious login(s) in the past 7 days."
+        foreach ($login in $suspiciousLogins) {
+            Write-Output "    - IP: $($login.IP), Date: $($login.Date)"
+            Write-Log -Message "Logins - IP: $($login.IP), Date: $($login.Date)"
+        }
+    } else {
+        Write-Output "  - No suspicious logins in the past 7 days."
+    }
+} catch {
+    Write-Output "  - Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
+    Write-Log -Message "Error retrieving suspicious login activity for $($mailbox.UserPrincipalName)."
+}
+
         # Search for password changes in the Admin Audit Log
         try {
            $startDate = (Get-Date).AddDays(-30)  # Adjust the date range as needed
